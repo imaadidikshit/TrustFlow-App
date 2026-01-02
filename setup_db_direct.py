@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+u#!/usr/bin/env python3
 """
 Setup Supabase database schema for TrustFlow using direct PostgreSQL connection
 """
