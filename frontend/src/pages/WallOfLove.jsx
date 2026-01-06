@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom'; 
 import { supabase } from '@/lib/supabase';
-import { Star, Play, ChevronLeft, ChevronRight, Quote, MessageSquare } from 'lucide-react'; 
+import { Star, Play, ChevronLeft, ChevronRight, Quote, MessageSquare, BadgeCheck } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import '@/index.css';
@@ -329,16 +329,22 @@ const WallOfLove = () => {
 
                 {/* Author Footer */}
                 <div className="flex items-center gap-3 mt-auto pt-4 border-t border-dashed border-gray-200/10">
-                  <Avatar className="w-8 h-8 border border-white/20">
-                    <AvatarImage src={testimonial.respondent_photo_url} />
+                  {/* AVATAR WITH ZOOM (48px / scale-110) */}
+                  <Avatar className="w-12 h-12 border border-white/20 overflow-hidden shrink-0">
+                    <AvatarImage 
+                       src={testimonial.respondent_photo_url} 
+                       className="w-full h-full object-cover scale-110 transition-transform will-change-transform" 
+                    />
                     <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">{testimonial.respondent_name?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   
                   <div>
-                    <div className={`font-bold ${getNameSizeClass()}`}>
+                    {/* UPDATED: Name + Blue Tick (Solid Style) */}
+                    <div className={`font-bold ${getNameSizeClass()} flex items-center gap-1.5`}>
                       {testimonial.respondent_name || "Anonymous"}
+                      <BadgeCheck className="w-4 h-4 text-white fill-blue-500 shrink-0" />
                     </div>
-                    {/* UPDATED: Displays 'Verified User' if respondent_role is missing */}
+                    {/* UPDATED: Verified User fallback */}
                     <div className={`text-[10px] opacity-70`}>
                       {testimonial.respondent_role || 'Verified User'}
                     </div>
