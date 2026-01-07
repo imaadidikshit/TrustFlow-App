@@ -497,9 +497,7 @@ const SubmitTestimonial = () => {
           respondent_email: email,
           respondent_role: role, 
           respondent_photo_url: avatarUrl,
-          // Storing array of images if schema allows, otherwise just handling as uploaded
-          // Note: If you have an 'images' column, uncomment:
-          // images: imageUrls, 
+           attached_photos: imageUrls, 
           is_liked: false,
           created_at: new Date().toISOString(),
         });
@@ -512,6 +510,7 @@ const SubmitTestimonial = () => {
 
     } catch (error) {
       console.error('Error submitting:', error);
+      console.log(error.message, error);
       setSubmissionError('Upload failed. Please check your connection.');
       setStep('details');
     } finally {
