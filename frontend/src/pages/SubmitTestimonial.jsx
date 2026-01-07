@@ -472,9 +472,9 @@ const SubmitTestimonial = () => {
         for (const imgObj of attachedImages) {
           const fileExt = imgObj.file.name.split('.').pop() || 'jpg';
           const fileName = `${space.id}/attached/${uuidv4()}.${fileExt}`;
-          const { error: imgError } = await supabase.storage.from('respondent_photo').upload(fileName, imgObj.file);
+          const { error: imgError } = await supabase.storage.from('testimonial_attached_photos').upload(fileName, imgObj.file);
           if (!imgError) {
-             const { data: { publicUrl } } = supabase.storage.from('respondent_photo').getPublicUrl(fileName);
+             const { data: { publicUrl } } = supabase.storage.from('testimonial_attached_photos').getPublicUrl(fileName);
              imageUrls.push(publicUrl);
           }
         }
