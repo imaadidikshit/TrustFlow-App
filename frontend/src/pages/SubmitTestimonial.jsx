@@ -232,12 +232,30 @@ const SubmitTestimonial = () => {
     if (!streamRef.current) return;
     const mediaRecorder = new MediaRecorder(streamRef.current, { mimeType: 'video/webm;codecs=vp9' });
     const chunks = [];
-    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'video/webm' });
-      setRecordedBlob(blob);
-      setRecordedUrl(URL.createObjectURL(blob));
+    
+    mediaRecorder.ondataavailable = (e) => { 
+        if (e.data && e.data.size > 0) chunks.push(e.data); 
     };
+    
+    mediaRecorder.onerror = (e) => {
+        console.error("Recording error:", e);
+        setSubmissionError("Video recording failed. Please try again.");
+    };
+
+    mediaRecorder.onstop = () => {
+      try {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        if (blob.size > 0) {
+            setRecordedBlob(blob);
+            setRecordedUrl(URL.createObjectURL(blob));
+        } else {
+            console.error("Recorded blob is empty");
+        }
+      } catch (err) {
+        console.error("Failed to process video blob", err);
+      }
+    };
+    
     mediaRecorderRef.current = mediaRecorder;
     mediaRecorder.start();
     setIsRecording(true);
@@ -273,18 +291,23 @@ const SubmitTestimonial = () => {
 
   // --- Photo Logic (Multi-Image) ---
   const handlePhotoUpload = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + attachedImages.length > 4) {
-      setSubmissionError("Maximum 4 photos allowed.");
-      return;
-    }
-    setSubmissionError(null);
+    try {
+      const files = Array.from(e.target.files);
+      if (files.length + attachedImages.length > 4) {
+        setSubmissionError("Maximum 4 photos allowed.");
+        return;
+      }
+      setSubmissionError(null);
 
-    const newImages = files.map(file => ({
-      file,
-      preview: URL.createObjectURL(file)
-    }));
-    setAttachedImages([...attachedImages, ...newImages]);
+      const newImages = files.map(file => ({
+        file,
+        preview: URL.createObjectURL(file)
+      }));
+      setAttachedImages([...attachedImages, ...newImages]);
+    } catch (err) {
+      console.error("Error handling photo upload:", err);
+      setSubmissionError("Failed to load selected photos.");
+    }
   };
 
   const startPhotoCamera = async () => {
@@ -301,36 +324,75 @@ const SubmitTestimonial = () => {
     }
   };
 
+  // --- ROBUST CAPTURE LOGIC (FIXED) ---
   const capturePhoto = () => {
     if (!photoVideoRef.current) return;
+    
+    // 1. Ensure video stream is valid and has dimensions
+    if (photoVideoRef.current.videoWidth === 0 || photoVideoRef.current.videoHeight === 0) {
+       console.warn("Video stream not ready yet.");
+       return; 
+    }
+
     const canvas = document.createElement('canvas');
     canvas.width = photoVideoRef.current.videoWidth;
     canvas.height = photoVideoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(photoVideoRef.current, 0, 0);
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+        setSubmissionError("Device not supported for capture.");
+        return;
+    }
+
+    ctx.drawImage(photoVideoRef.current, 0, 0);
+    
     canvas.toBlob(blob => {
+      // 2. Critical Null Check for Blob
+      if (!blob) {
+         console.error("Failed to capture photo: Blob is null");
+         setSubmissionError("Failed to capture photo. Please try again.");
+         return; 
+      }
+      
       const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      
+      // 3. Re-check limits before state update
       if (attachedImages.length >= 4) {
         setSubmissionError("Maximum 4 photos allowed.");
         stopCamera();
         return;
       }
-      setAttachedImages([...attachedImages, { file, preview: URL.createObjectURL(blob) }]);
-      stopCamera(); // Close camera after taking one photo
+      
+      // 4. Safe URL creation
+      try {
+        const previewUrl = URL.createObjectURL(blob);
+        setAttachedImages(prev => [...prev, { file, preview: previewUrl }]);
+        stopCamera(); // Close camera after taking one photo
+      } catch (e) {
+        console.error("Failed to create object URL", e);
+        setSubmissionError("Error saving photo.");
+      }
     }, 'image/jpeg');
   };
 
   const removeAttachedImage = (index) => {
-    const newImages = [...attachedImages];
-    newImages.splice(index, 1);
-    setAttachedImages(newImages);
+    setAttachedImages(prev => {
+        const newImages = [...prev];
+        newImages.splice(index, 1);
+        return newImages;
+    });
   };
 
   // --- Avatar Logic ---
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      try {
+        setAvatarFile(file);
+        setAvatarPreview(URL.createObjectURL(file));
+      } catch (err) {
+        console.error("Avatar preview error", err);
+      }
     }
   };
   const removeAvatar = () => {
