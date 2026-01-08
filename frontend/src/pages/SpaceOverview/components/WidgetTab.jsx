@@ -9,11 +9,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { 
-  Zap, Copy, Layout, Grid3X3, GalleryHorizontal, StretchHorizontal,
-  Palette, Type, MessageSquare, Quote, Hand, Square, Circle,
+  Zap, Copy, Layout, Grid3X3, GalleryHorizontal, StretchHorizontal, AlignJustify,
+  Palette, Type, MessageSquare, Quote, Hand, Square, Circle, AlignLeft,
   Check, X, Sparkles, RefreshCw, Gauge, ChevronLeft, ChevronRight, Star, BadgeCheck,
   Smartphone, Tablet, Laptop, Save, RotateCcw, Shuffle, Heading,
-  Maximize2, Minimize2, Layers, Info, Loader2, AlertCircle, ChevronDown, CheckCircle
+  Maximize2, Minimize2, Layers, Info, Loader2, AlertCircle, ChevronDown, CheckCircle, AlertTriangle
 } from 'lucide-react';
 import { StylishVideoPlayer, PremiumToggle, SectionHeader, CARD_WIDTH, GAP, PADDING_X } from './SharedComponents';
 import confetti from 'canvas-confetti';
@@ -28,20 +28,50 @@ const PREMIUM_FONTS = [
   "Fjalla One", "Inconsolata"
 ];
 
-const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
+// --- Helper: Sleek Toggle ---
+const ToggleSwitch = ({ isOn, onToggle }) => (
+    <div 
+        onClick={onToggle} 
+        className={`w-9 h-5 rounded-full p-0.5 cursor-pointer transition-colors duration-200 ease-in-out ${isOn ? 'bg-violet-600' : 'bg-slate-300'}`}
+    >
+        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${isOn ? 'translate-x-4' : 'translate-x-0'}`} />
+    </div>
+);
+
+const WidgetTab = ({ 
+  testimonials, 
+  spaceId, 
+  activeTab,
+  widgetSettings,      // <--- Prop from Parent
+  setWidgetSettings,   // <--- Prop from Parent
+  saveWidgetSettings,   // <--- Prop from Parent
+  DEFAULT_WIDGET_SETTINGS
+}) => {
   
-  // -- 11. Mobile Suggestion State --
+  // -- State --
   const [showMobileWarning, setShowMobileWarning] = useState(false);
   const [showScrollWarning, setShowScrollWarning] = useState(true);
-
-  // -- Save Button State --
-  const [saveStatus, setSaveStatus] = useState('idle');
+  
+  // -- Save & Feedback State --
+  const [saveStatus, setSaveStatus] = useState('idle'); 
+  const [feedbackMsg, setFeedbackMsg] = useState(''); 
+  const [feedbackType, setFeedbackType] = useState(''); 
 
   // -- Font Picker State --
   const [isFontOpen, setIsFontOpen] = useState(false);
-  const [previewFont, setPreviewFont] = useState('Inter'); // For temporary hover preview
+  const [previewFont, setPreviewFont] = useState('Inter'); 
   const fontListRef = useRef(null);
 
+  // -- Device & Logic State --
+  const [deviceMode, setDeviceMode] = useState('desktop'); 
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(1);
+  const [maskWidth, setMaskWidth] = useState('100%');
+  const [isSnapping, setIsSnapping] = useState(false);
+  const containerRef = useRef(null);
+  const [replayTrigger, setReplayTrigger] = useState(0);
+
+  // -- Mobile Check --
   useEffect(() => {
     const checkMobile = () => {
       if (window.innerWidth < 1024) setShowMobileWarning(true);
@@ -51,109 +81,73 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // -- Initial Settings --
-  const initialSettings = {
-    layout: 'grid',       
-    theme: 'light',       
-    cardTheme: 'light',   
-    corners: 'smooth',    
-    shadow: 'medium',     
-    border: true,         
-    hoverEffect: 'lift',  
-    nameSize: 'medium',   
-    testimonialStyle: 'clean', 
-    animation: 'fade',    
-    speed: 'normal',
-    // New Features
-    cardSize: 'medium',
-    placement: 'section',
-    maxCount: 12,
-    shuffle: false,
-    gridRows: 2,
-    autoScroll: false,
-    scrollSpeed: 3, 
-    wallPadding: 'medium',
-    showHeading: false,
-    headingText: 'Wall of Love',
-    headingFont: 'Inter',
-    headingColor: '#000000',
-    headingBold: true,
-    showSubheading: false,
-    subheadingText: 'What our happy customers say',
-    subheadingFont: 'Inter',
-    subheadingColor: '#64748b',
-    carouselFocusZoom: false,
-    carouselSameSize: true, // New: Force equal height in carousel
-  };
-
-  const [widgetSettings, setWidgetSettings] = useState(initialSettings);
-
-  // Sync preview font when settings change (unless hovering)
+  // -- Font Loader --
   useEffect(() => {
-    if (!isFontOpen) {
+    if (!previewFont) return;
+    const fontName = previewFont.replace(/\s+/g, '+');
+    const linkId = `font-${fontName}`;
+    if (!document.getElementById(linkId)) {
+        const link = document.createElement('link');
+        link.id = linkId;
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${fontName}:wght@400;700&display=swap`;
+        document.head.appendChild(link);
+    }
+  }, [previewFont]);
+
+  // -- Font Sync --
+  useEffect(() => {
+    if (!isFontOpen && widgetSettings?.headingFont) {
         setPreviewFont(widgetSettings.headingFont);
     }
-  }, [widgetSettings.headingFont, isFontOpen]);
+  }, [widgetSettings?.headingFont, isFontOpen]);
 
-  // Close font dropdown on click outside
+  // -- Click Outside Font Picker --
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (fontListRef.current && !fontListRef.current.contains(event.target)) {
-        setIsFontOpen(false);
-      }
+      if (fontListRef.current && !fontListRef.current.contains(event.target)) setIsFontOpen(false);
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // -- 9. Live Preview Device Mode --
-  const [deviceMode, setDeviceMode] = useState('desktop'); 
-
-  // -- Carousel Pagination State --
-  const [carouselIndex, setCarouselIndex] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(1);
-  const [maskWidth, setMaskWidth] = useState('100%');
-  const containerRef = useRef(null);
-  
-  // Animation Replay Trigger
-  const [replayTrigger, setReplayTrigger] = useState(0);
-
-  // -- 4. Shuffle Logic --
+  // -- Data Processing --
   const displayedTestimonials = useMemo(() => {
     let result = [...testimonials].filter(t => t.is_liked);
-    if (widgetSettings.shuffle) {
-        result = result.sort(() => Math.random() - 0.5);
-    }
-    return result.slice(0, widgetSettings.maxCount);
-  }, [testimonials, widgetSettings.shuffle, widgetSettings.maxCount]);
+    if (widgetSettings?.shuffle) result = result.sort(() => Math.random() - 0.5);
+    return result.slice(0, widgetSettings?.maxCount || 12);
+  }, [testimonials, widgetSettings?.shuffle, widgetSettings?.maxCount]);
 
-  const isCarousel = widgetSettings.layout === 'carousel';
+  // -- Seamless Loop --
+  const carouselItems = useMemo(() => {
+    if (widgetSettings?.layout !== 'carousel' || displayedTestimonials.length === 0) return displayedTestimonials;
+    const clones = displayedTestimonials.slice(0, visibleCount + 1);
+    return [...displayedTestimonials, ...clones];
+  }, [displayedTestimonials, widgetSettings?.layout, visibleCount]);
 
-  // -- Auto Scroll Logic --
+  const isCarousel = widgetSettings?.layout === 'carousel';
+  const isPagedGrid = widgetSettings?.layout === 'grid' && displayedTestimonials.length > (visibleCount * (widgetSettings?.gridRows || 2));
+
+  // -- Auto Scroll --
   useEffect(() => {
     let interval;
-    if (widgetSettings.autoScroll && isCarousel) {
-        interval = setInterval(() => {
-            handleNext();
-        }, widgetSettings.scrollSpeed * 1000);
+    if (widgetSettings?.autoScroll && isCarousel) {
+        interval = setInterval(() => handleNext(), (widgetSettings.scrollSpeed || 3) * 1000);
     }
     return () => clearInterval(interval);
-  }, [widgetSettings.autoScroll, widgetSettings.scrollSpeed, isCarousel, carouselIndex]);
+  }, [widgetSettings?.autoScroll, widgetSettings?.scrollSpeed, isCarousel, carouselIndex]);
 
-  // Reset scroll warning when layout changes to carousel
+  // -- Reset Scroll Warning --
   useEffect(() => {
-    if (widgetSettings.layout === 'carousel') {
-        setShowScrollWarning(true); 
-    }
-  }, [widgetSettings.layout]);
+    if (widgetSettings?.layout === 'carousel') setShowScrollWarning(true);
+  }, [widgetSettings?.layout]);
 
-  // --- Strict Fit Calculation ---
+  // -- Resize Logic --
   useEffect(() => {
-    if (widgetSettings.layout !== 'carousel' || !containerRef.current) {
-      setMaskWidth('100%');
-      return;
+    if ((widgetSettings?.layout !== 'carousel' && !isPagedGrid) || !containerRef.current) {
+        if(containerRef.current) setMaskWidth('100%');
+        return;
     }
-
     const updateDimensions = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
@@ -162,93 +156,146 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
         const count = Math.floor((availableWidth + GAP) / (cardWidthToUse + GAP));
         const safeCount = Math.max(1, count);
         setVisibleCount(safeCount);
-        
-        const exactWidth = (safeCount * cardWidthToUse) + ((safeCount - 1) * GAP);
-        setMaskWidth(`${exactWidth + 8}px`);
+        if (isCarousel) {
+             const exactWidth = (safeCount * cardWidthToUse) + ((safeCount - 1) * GAP);
+             setMaskWidth(`${exactWidth + 8}px`);
+        } else {
+             setMaskWidth('100%');
+        }
       }
     };
-
     updateDimensions();
     const observer = new ResizeObserver(updateDimensions);
     observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [widgetSettings.layout, widgetSettings.cardSize, deviceMode, activeTab]); 
+  }, [widgetSettings?.layout, widgetSettings?.cardSize, deviceMode, isPagedGrid, activeTab]); 
 
-  // Trigger animation replay
-  useEffect(() => {
-    setReplayTrigger(prev => prev + 1);
-  }, [widgetSettings.animation, widgetSettings.speed, widgetSettings.layout]);
-
-  const copyEmbedCode = () => {
-    // Generate code logic here...
-    navigator.clipboard.writeText("");
-    // Using button state instead of toast for cleaner UI
-  };
+  useEffect(() => { setReplayTrigger(prev => prev + 1); }, [widgetSettings?.animation, widgetSettings?.speed, widgetSettings?.layout]);
 
   const handleNext = () => {
-    const total = displayedTestimonials.length;
-    if (carouselIndex + 1 >= total) {
-        setCarouselIndex(0);
+    if (isCarousel) {
+        if (carouselIndex >= displayedTestimonials.length) {
+            setIsSnapping(true);
+            setCarouselIndex(0);
+            requestAnimationFrame(() => requestAnimationFrame(() => { setIsSnapping(false); setCarouselIndex(1); }));
+        } else {
+            setCarouselIndex(prev => prev + 1);
+        }
     } else {
-        setCarouselIndex(prev => prev + 1);
+        const total = displayedTestimonials.length;
+        const jump = visibleCount * (widgetSettings?.gridRows || 2);
+        if (carouselIndex + jump >= total) setCarouselIndex(0);
+        else setCarouselIndex(prev => prev + jump);
     }
   };
 
   const handlePrev = () => {
-    const total = displayedTestimonials.length;
-    if (carouselIndex - 1 < 0) {
-        setCarouselIndex(Math.max(0, total - 1));
+    if (isCarousel) {
+        if (carouselIndex <= 0) {
+            setIsSnapping(true);
+            setCarouselIndex(displayedTestimonials.length);
+            requestAnimationFrame(() => requestAnimationFrame(() => { setIsSnapping(false); setCarouselIndex(displayedTestimonials.length - 1); }));
+        } else {
+            setCarouselIndex(prev => prev - 1);
+        }
     } else {
-        setCarouselIndex(prev => prev - 1);
+        const total = displayedTestimonials.length;
+        const jump = visibleCount * (widgetSettings?.gridRows || 2);
+        if (carouselIndex - jump < 0) setCarouselIndex(Math.max(0, total - jump));
+        else setCarouselIndex(prev => prev - jump);
     }
   };
 
   const handleReset = () => {
-      setWidgetSettings(initialSettings);
       setDeviceMode('desktop');
+      setSaveStatus('idle');
+      setFeedbackMsg('');
   };
 
-  // -- Smart Card Sizing Logic --
   const getCardWidthPx = () => {
       if (deviceMode === 'mobile') return 260;
-      if (widgetSettings.cardSize === 'compact') return 260;
-      if (widgetSettings.cardSize === 'large') return 340;
-      return CARD_WIDTH; // 300
+      if (widgetSettings?.cardSize === 'compact') return 260;
+      if (widgetSettings?.cardSize === 'large') return 340;
+      return CARD_WIDTH; 
   };
 
+  // --- SAVE HANDLER (Calls Parent Function) ---
+  const handleSave = async () => {
+    // 1. Client-Side Validation
+    if (widgetSettings.showHeading && (!widgetSettings.headingText || widgetSettings.headingText.trim() === '')) {
+        setSaveStatus('error');
+        setFeedbackType('user');
+        setFeedbackMsg('Heading text cannot be empty!');
+        setTimeout(() => { setSaveStatus('idle'); setFeedbackMsg(''); }, 3000);
+        return;
+    }
+
+    if (widgetSettings.showSubheading && (!widgetSettings.subheadingText || widgetSettings.subheadingText.trim() === '')) {
+        setSaveStatus('error');
+        setFeedbackType('user');
+        setFeedbackMsg('Subheading text cannot be empty!');
+        setTimeout(() => { setSaveStatus('idle'); setFeedbackMsg(''); }, 3000);
+        return;
+    }
+
+    // 2. Call Parent Save Function
+    setSaveStatus('loading');
+    setFeedbackMsg('');
+    
+    try {
+        await saveWidgetSettings(widgetSettings);
+
+        // 3. Success
+        setSaveStatus('success');
+        confetti({
+            particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#8b5cf6', '#a78bfa', '#ffffff']
+        });
+        setTimeout(() => setSaveStatus('idle'), 3000);
+
+    } catch (error) {
+        // 4. Error
+        setSaveStatus('error');
+        setFeedbackType('system');
+        setFeedbackMsg('Something went wrong. Please try again.');
+        setTimeout(() => { setSaveStatus('idle'); setFeedbackMsg(''); }, 4000);
+    }
+  };
+
+  const copyEmbedCode = () => {
+    const code = `<script src="${window.location.origin}/embed.js" data-space-id="${spaceId}"></script>`;
+    navigator.clipboard.writeText(code);
+
+    confetti({
+      particleCount: 100, spread: 70, origin: { y: 0.8 }, colors: ['#8b5cf6', '#a78bfa', '#ffffff']
+  });
+  };
+
+  // Styles Helpers...
   const getPreviewCardStyles = (index) => {
     const { cardTheme, layout, corners, shadow, border, hoverEffect, carouselSameSize } = widgetSettings;
     let classes = 'p-6 transition-all duration-300 flex flex-col relative ';
     
-    // Layout Height Logic
-    if (layout === 'masonry') {
-        classes += 'h-auto ';
-    } else if (layout === 'carousel') {
-        // If Carousel Same Size is ON, stretch to full height
+    if (layout === 'masonry') classes += 'h-auto ';
+    else if (layout === 'carousel') {
         if (carouselSameSize) classes += '!h-full ';
-        else classes += 'h-auto '; // Let content dictate height
+        else classes += 'h-auto ';
     } else {
-        // Grid usually wants full height to look uniform
         classes += '!h-full '; 
     }
     
-    // Corners
     if (corners === 'sharp') classes += 'rounded-none ';
     else if (corners === 'round') classes += 'rounded-3xl ';
     else classes += 'rounded-xl '; 
 
-    // Shadow
     if (shadow === 'none') classes += 'shadow-none ';
     else if (shadow === 'light') classes += 'shadow-sm ';
     else if (shadow === 'strong') classes += 'shadow-xl ';
     else classes += 'shadow-md '; 
 
-    // Hover
     if (hoverEffect === 'lift') classes += 'hover:-translate-y-1 hover:shadow-lg ';
     else if (hoverEffect === 'scale') classes += 'hover:scale-[1.02] hover:shadow-lg ';
     else if (hoverEffect === 'glow') classes += 'hover:shadow-violet-500/20 hover:border-violet-300 ';
 
-    // Theme
     if (cardTheme === 'dark') {
       classes += 'bg-slate-900 text-slate-100 ';
       classes += border ? 'border border-slate-800 ' : 'border-0 ';
@@ -257,12 +304,9 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
       classes += border ? 'border border-slate-100 ' : 'border-0 ';
     }
 
-    // Layout Sizing
     if (layout === 'masonry') classes += 'break-inside-avoid mb-6 inline-block w-full ';
-    else if (layout === 'carousel') {
-        classes += 'flex-shrink-0 ';
-    }
-    
+    else if (layout === 'carousel') classes += 'flex-shrink-0 ';
+    else if (layout === 'list') classes += 'w-full mb-4 ';
     return classes;
   };
 
@@ -274,56 +318,27 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
     }
   };
 
-  // Restore all animations
   const getAnimationVariants = () => {
     const { animation, speed } = widgetSettings;
     const durations = { slow: 0.8, normal: 0.5, fast: 0.3 };
     const dur = durations[speed] || 0.5;
-    const stagger = speed === 'fast' ? 0.05 : 0.1;
-
-    switch(animation) {
-      case 'slideUp': return { hidden: { opacity: 0, y: 50 }, visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * stagger, duration: dur, ease: "easeOut" } }) };
-      case 'slideDown': return { hidden: { opacity: 0, y: -50 }, visible: (i) => ({ opacity: 1, y: 0, transition: { delay: i * stagger, duration: dur, ease: "easeOut" } }) };
-      case 'scale': return { hidden: { opacity: 0, scale: 0.8 }, visible: (i) => ({ opacity: 1, scale: 1, transition: { delay: i * stagger, duration: dur } }) };
-      case 'pop': return { hidden: { opacity: 0, scale: 0.5 }, visible: (i) => ({ opacity: 1, scale: 1, transition: { delay: i * stagger, type: 'spring', stiffness: 300, damping: 20 } }) };
-      case 'flip': return { hidden: { opacity: 0, rotateX: 90 }, visible: (i) => ({ opacity: 1, rotateX: 0, transition: { delay: i * stagger, duration: dur } }) };
-      case 'elastic': return { hidden: { opacity: 0, x: -100 }, visible: (i) => ({ opacity: 1, x: 0, transition: { delay: i * stagger, type: 'spring', bounce: 0.6 } }) };
-      case 'none': return { hidden: { opacity: 1 }, visible: { opacity: 1 } };
-      case 'fade': default: return { hidden: { opacity: 0 }, visible: (i) => ({ opacity: 1, transition: { delay: i * stagger, duration: dur } }) };
-    }
+    return { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: dur } } };
   };
 
-  const ToggleSwitch = ({ isOn, onToggle }) => (
-    <div 
-        onClick={onToggle} 
-        className={`w-9 h-5 rounded-full p-0.5 cursor-pointer transition-colors duration-200 ease-in-out ${isOn ? 'bg-violet-600' : 'bg-slate-300'}`}
-    >
-        <div className={`w-4 h-4 bg-white rounded-full shadow-sm transform transition-transform duration-200 ease-in-out ${isOn ? 'translate-x-4' : 'translate-x-0'}`} />
-    </div>
-  );
-
-  // --- SAVE HANDLER ---
-  const handleSave = () => {
-    setSaveStatus('loading');
-    
-    // Simulate API Call
-    setTimeout(() => {
-      setSaveStatus('success');
-      
-      // Trigger Celebration
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.8 },
-        colors: ['#8b5cf6', '#a78bfa', '#ffffff']
-      });
-
-      // Reset to idle after delay
-      setTimeout(() => {
-        setSaveStatus('idle');
-      }, 3000);
-    }, 1500);
+  // --- Animation Variants for Feedback Bubble ---
+  const bubbleVariants = {
+    hidden: { opacity: 0, y: 10, scale: 0.9 },
+    visible: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: 5, scale: 0.9 }
   };
+
+  // --- Shake Animation for Error Button ---
+  const buttonVariants = {
+    idle: { x: 0 },
+    error: { x: [0, -5, 5, -5, 5, 0], transition: { duration: 0.4 } }
+  };
+
+  if (!widgetSettings) return null; // Safe guard
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 h-[calc(100vh-200px)] min-h-[800px] relative">
@@ -346,29 +361,60 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
               </CardTitle>
               <CardDescription>Customize your wall of love</CardDescription>
             </div>
-            <div className="flex gap-2">
+            
+            <div className="flex gap-2 items-center relative">
                  <Button size="sm" onClick={copyEmbedCode} className="bg-violet-600 hover:bg-violet-700 shadow-md shadow-violet-500/20 text-xs h-8">
-                    <Copy className="w-3.5 h-3.5 mr-1.5" /> Copy Code
+                    <Copy className="w-3.5 h-3.5 mr-1.5 " /> Copy Code
                  </Button>
                  
-                 {/* Enhanced Save Button */}
-                 <Button 
-                    size="sm"
-                    onClick={handleSave} 
-                    disabled={saveStatus !== 'idle'} 
-                    className={`h-8 transition-all duration-300 relative overflow-hidden ${
-                      saveStatus === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' : 
-                      saveStatus === 'error' ? 'bg-red-600 text-white' : 
-                      'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      {saveStatus === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      {saveStatus === 'success' && <CheckCircle className="w-3.5 h-3.5" />}
-                      {saveStatus === 'idle' && <Save className="w-3.5 h-3.5" />}
-                      <span>{saveStatus === 'success' ? 'Saved' : 'Save'}</span>
-                    </div>
-                 </Button>
+                 {/* FEEDBACK BUBBLE */}
+                 <AnimatePresence>
+                    {feedbackMsg && (
+                        <motion.div
+                            variants={bubbleVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            className={`absolute right-0 top-10 z-50 px-3 py-2 rounded-lg shadow-lg text-xs font-medium whitespace-nowrap flex items-center gap-2 border 
+                                ${feedbackType === 'user' ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-red-50 border-red-200 text-red-700'}
+                            `}
+                        >
+                            {feedbackType === 'user' ? <AlertCircle className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                            {feedbackMsg}
+                            {/* Tiny triangle pointer */}
+                            <div className={`absolute -top-1 right-8 w-2 h-2 rotate-45 border-l border-t bg-inherit border-inherit`} />
+                        </motion.div>
+                    )}
+                 </AnimatePresence>
+
+                 {/* Animated Save Button */}
+                 <motion.div
+                    variants={buttonVariants}
+                    animate={saveStatus === 'error' ? 'error' : 'idle'}
+                 >
+                     <Button 
+                        size="sm"
+                        onClick={handleSave} 
+                        disabled={saveStatus === 'loading'}
+                        className={`h-8 transition-all duration-300 relative overflow-hidden ${
+                          saveStatus === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' : 
+                          saveStatus === 'error' ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 
+                          'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {saveStatus === 'loading' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          {saveStatus === 'success' && <CheckCircle className="w-3.5 h-3.5" />}
+                          {saveStatus === 'error' && <RotateCcw className="w-3.5 h-3.5" />}
+                          {saveStatus === 'idle' && <Save className="w-3.5 h-3.5" />}
+                          <span>
+                              {saveStatus === 'success' ? 'Saved' : 
+                               saveStatus === 'error' ? 'Retry' : 
+                               saveStatus === 'loading' ? 'Saving' : 'Save'}
+                          </span>
+                        </div>
+                     </Button>
+                 </motion.div>
             </div>
           </div>
         </CardHeader>
@@ -386,10 +432,10 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                 { label: 'Grid', value: 'grid', icon: Grid3X3 },
                 { label: 'Masonry', value: 'masonry', icon: GalleryHorizontal },
                 { label: 'Carousel', value: 'carousel', icon: StretchHorizontal },
+                { label: 'List', value: 'list', icon: AlignJustify },
               ]}
             />
             
-            {/* Carousel Specific: Equal Height Toggle */}
             <AnimatePresence>
                 {widgetSettings.layout === 'carousel' && (
                     <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}>
@@ -407,7 +453,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
 
           <Separator className="bg-slate-100" />
 
-          {/* 4. Content Source */}
+          {/* 2. Content & Placement */}
           <div className="space-y-4">
              <SectionHeader icon={Layers} title="Content & Placement" />
              <div className="grid grid-cols-2 gap-4">
@@ -417,10 +463,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                         id="placement"
                         current={widgetSettings.placement}
                         onChange={(val) => setWidgetSettings({...widgetSettings, placement: val})}
-                        options={[
-                            { label: 'Body', value: 'body' },
-                            { label: 'Section', value: 'section' },
-                        ]}
+                        options={[ { label: 'Body', value: 'body' }, { label: 'Section', value: 'section' } ]}
                     />
                  </div>
                  <div>
@@ -429,11 +472,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                         id="padding"
                         current={widgetSettings.wallPadding}
                         onChange={(val) => setWidgetSettings({...widgetSettings, wallPadding: val})}
-                        options={[
-                            { label: 'S', value: 'small' },
-                            { label: 'M', value: 'medium' },
-                            { label: 'L', value: 'large' },
-                        ]}
+                        options={[ { label: 'S', value: 'small' }, { label: 'M', value: 'medium' }, { label: 'L', value: 'large' } ]}
                     />
                  </div>
              </div>
@@ -449,30 +488,17 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                         onValueChange={(val) => setWidgetSettings({...widgetSettings, maxCount: val[0]})}
                      />
                  </div>
-                 <div className="flex items-center justify-between">
-                     <div className="flex items-center gap-2">
-                         <Shuffle className="w-4 h-4 text-slate-500" />
-                         <Label className="text-xs text-slate-600">Shuffle Content</Label>
-                     </div>
-                     <div className="flex items-center gap-2">
-                        <span className={`text-[10px] ${widgetSettings.shuffle ? 'text-violet-600' : 'text-slate-400'}`}>{widgetSettings.shuffle ? 'On' : 'Off'}</span>
-                        <Button 
-                            size="sm" variant={widgetSettings.shuffle ? 'default' : 'outline'} 
-                            onClick={() => setWidgetSettings({...widgetSettings, shuffle: !widgetSettings.shuffle})}
-                            className={`h-6 w-10 p-0 rounded-full ${widgetSettings.shuffle ? 'bg-violet-600' : ''}`}
-                        >
-                            {widgetSettings.shuffle ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                        </Button>
-                     </div>
-                 </div>
              </div>
           </div>
 
           <Separator className="bg-slate-100" />
 
-          {/* 8. Headings */}
+          {/* 3. Typography */}
           <div className="space-y-4">
-             <SectionHeader icon={Heading} title="Typography & Headers" />
+             <div className="flex items-center justify-between mb-2">
+                <SectionHeader icon={Heading} title="Typography & Headers" />
+                <Badge variant="outline" className="text-[10px] border-amber-200 text-amber-600 bg-amber-50">PREMIUM</Badge>
+             </div>
              
              {/* Heading Control */}
              <div className="space-y-3">
@@ -486,13 +512,13 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                          />
                      </div>
                  </div>
-                 
                  {widgetSettings.showHeading && (
                      <div className="space-y-2 pl-2 border-l-2 border-violet-100 animate-in slide-in-from-left-2">
                          <Input 
                            value={widgetSettings.headingText} 
                            onChange={(e) => setWidgetSettings({...widgetSettings, headingText: e.target.value})}
-                           className="h-8 text-xs" placeholder="Heading Text"
+                           className={`h-8 text-xs ${!widgetSettings.headingText ? 'border-red-300 bg-red-50' : ''}`}
+                           placeholder="Heading Text"
                          />
                          <div className="flex gap-2 relative" ref={fontListRef}>
                              <input 
@@ -500,8 +526,6 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                                onChange={(e) => setWidgetSettings({...widgetSettings, headingColor: e.target.value})}
                                className="h-8 w-8 rounded cursor-pointer border-none"
                              />
-                             
-                             {/* Custom Font Picker */}
                              <div className="flex-1 relative">
                                 <button 
                                   onClick={() => setIsFontOpen(!isFontOpen)}
@@ -510,7 +534,6 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                                   <span style={{ fontFamily: widgetSettings.headingFont }}>{widgetSettings.headingFont}</span>
                                   <ChevronDown className="w-3 h-3 opacity-50" />
                                 </button>
-                                
                                 <AnimatePresence>
                                   {isFontOpen && (
                                     <motion.div 
@@ -526,7 +549,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                                             setWidgetSettings({...widgetSettings, headingFont: font});
                                             setIsFontOpen(false);
                                           }}
-                                          onMouseEnter={() => setPreviewFont(font)} // Live Hover Preview
+                                          onMouseEnter={() => setPreviewFont(font)} 
                                           onMouseLeave={() => setPreviewFont(widgetSettings.headingFont)}
                                         >
                                           {font}
@@ -537,7 +560,6 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                                   )}
                                 </AnimatePresence>
                              </div>
-
                              <Button 
                                variant="outline" size="icon" className={`h-8 w-8 ${widgetSettings.headingBold ? 'bg-slate-100' : ''}`}
                                onClick={() => setWidgetSettings({...widgetSettings, headingBold: !widgetSettings.headingBold})}
@@ -561,13 +583,13 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                          />
                      </div>
                  </div>
-                 
                  {widgetSettings.showSubheading && (
                      <div className="space-y-2 pl-2 border-l-2 border-violet-100 animate-in slide-in-from-left-2">
                          <Input 
                            value={widgetSettings.subheadingText} 
                            onChange={(e) => setWidgetSettings({...widgetSettings, subheadingText: e.target.value})}
-                           className="h-8 text-xs" placeholder="Subheading Text"
+                           className={`h-8 text-xs ${!widgetSettings.subheadingText ? 'border-red-300 bg-red-50' : ''}`}
+                           placeholder="Subheading Text"
                          />
                          <div className="flex gap-2">
                              <input 
@@ -583,10 +605,27 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
 
           <Separator className="bg-slate-100" />
 
-          {/* 2. Visual Appearance */}
+          {/* 4. Card Styling */}
           <div className="space-y-6">
-            <SectionHeader icon={Palette} title="Card Styling" />
+            <div className="flex items-center justify-between mb-2">
+                <SectionHeader icon={Palette} title="Card Styling" />
+                <Badge variant="outline" className="text-[10px] border-amber-200 text-amber-600 bg-amber-50">PREMIUM</Badge>
+            </div>
             
+            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+                 <div className="flex items-center gap-2">
+                     <Shuffle className="w-4 h-4 text-slate-500" />
+                     <Label className="text-xs text-slate-600">Shuffle Content</Label>
+                 </div>
+                 <Button 
+                    size="sm" variant={widgetSettings.shuffle ? 'default' : 'outline'} 
+                    onClick={() => setWidgetSettings({...widgetSettings, shuffle: !widgetSettings.shuffle})}
+                    className={`h-6 w-10 p-0 rounded-full ${widgetSettings.shuffle ? 'bg-violet-600' : ''}`}
+                 >
+                    {widgetSettings.shuffle ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                 </Button>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
                   <Label className="text-xs text-slate-500 mb-2 block">Card Size</Label>
@@ -649,7 +688,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
 
                  <div>
                     <Label className="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center gap-1">
-                       <Layout className="w-3 h-3" /> Content Style
+                       <AlignLeft className="w-3 h-3" /> Content Style
                     </Label>
                     <PremiumToggle 
                       id="testimonialStyle"
@@ -723,7 +762,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
 
           <Separator className="bg-slate-100" />
 
-          {/* 6. Motion & Effects */}
+          {/* 5. Motion & Effects */}
           <div>
             <div className="flex items-center justify-between mb-4">
                <SectionHeader icon={Sparkles} title="Motion & Effects" />
@@ -749,7 +788,6 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                             )}
                        </div>
                        
-                       {/* Warning for non-carousel layouts */}
                        {!isCarousel && showScrollWarning && (
                             <div className="flex items-start gap-2 bg-slate-800/50 p-2 rounded text-[10px] text-amber-200 border border-amber-900/30">
                                 <Info className="w-3 h-3 mt-0.5 shrink-0" />
@@ -885,16 +923,14 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                     ${widgetSettings.wallPadding === 'small' ? 'p-4' : widgetSettings.wallPadding === 'large' ? 'p-12' : 'p-8'}
                 `}
                 >
-                {/* Vertically Center Content using Flex Wrapper */}
                 <div className="min-h-full flex flex-col justify-center">
 
-                    {/* Headings Display */}
+                    {/* Headings */}
                     {(widgetSettings.showHeading || widgetSettings.showSubheading) && (
                         <div className="text-center mb-8 space-y-2">
                             {widgetSettings.showHeading && (
                                 <h2 
                                     style={{
-                                        // Use previewFont if hovering, else selected font
                                         fontFamily: previewFont, 
                                         color: widgetSettings.headingColor,
                                         fontWeight: widgetSettings.headingBold ? 'bold' : 'normal'
@@ -946,12 +982,16 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                                 } 
                                 ${widgetSettings.layout === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : ''}
                                 ${widgetSettings.layout === 'masonry' ? 'columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6' : ''}
+                                ${widgetSettings.layout === 'list' ? 'max-w-2xl mx-auto flex flex-col gap-4' : ''}
                                 `}
-                                style={isCarousel ? { transform: `translateX(-${carouselIndex * (getCardWidthPx() + GAP)}px)`, transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)' } : {}}
+                                style={isCarousel ? { 
+                                    transform: `translateX(-${carouselIndex * (getCardWidthPx() + GAP)}px)`, 
+                                    transition: isSnapping ? 'none' : 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)' 
+                                } : {}}
                             >
                                 <AnimatePresence mode='wait'>
-                                    {displayedTestimonials.map((testimonial, i) => {
-                                        // Focus Zoom Calculation for Carousel
+                                    {/* Use 'carouselItems' for infinite cloning, else standard list */}
+                                    {(isCarousel ? carouselItems : displayedTestimonials).map((testimonial, i) => {
                                         let isFocused = false;
                                         if (isCarousel && widgetSettings.carouselFocusZoom) {
                                             const relativeIndex = i - carouselIndex;
@@ -961,7 +1001,7 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
 
                                         return (
                                             <motion.div
-                                                key={`${testimonial.id}-${replayTrigger}`}
+                                                key={`${testimonial.id}-${i}-${replayTrigger}`}
                                                 custom={i}
                                                 initial="hidden"
                                                 animate={isFocused ? { scale: 1.05, opacity: 1, zIndex: 10 } : "visible"}
@@ -972,7 +1012,6 @@ const WidgetTab = ({ testimonials, spaceId, activeTab }) => {
                                                     transformOrigin: 'center center'
                                                 }}
                                             >
-                                                {/* Testimonial Content */}
                                                 <div className="flex items-center gap-1 mb-3">
                                                     {[...Array(testimonial.rating || 5)].map((_, idx) => (
                                                         <Star key={idx} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />

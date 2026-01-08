@@ -30,7 +30,7 @@ const SpaceOverview = () => {
   const [activeTab, setActiveTab] = useState('inbox');
   const navigate = useNavigate();
 
-  // Defined Defaults - Used for fallback merging
+  // --- DEFAULTS ---
   const DEFAULT_THEME_CONFIG = {
     theme: 'light',
     accentColor: 'violet',
@@ -39,7 +39,17 @@ const SpaceOverview = () => {
     viewMode: 'mobile'
   };
 
-  // Form edit state
+  const DEFAULT_WIDGET_SETTINGS = {
+    layout: 'grid', theme: 'light', cardTheme: 'light', corners: 'smooth', shadow: 'medium', border: true, hoverEffect: 'lift',
+    nameSize: 'medium', testimonialStyle: 'clean', animation: 'fade', speed: 'normal',
+    cardSize: 'medium', placement: 'section', maxCount: 12, shuffle: false, gridRows: 2,
+    autoScroll: false, scrollSpeed: 3, wallPadding: 'medium',
+    showHeading: false, headingText: 'Wall of Love', headingFont: 'Inter', headingColor: '#000000', headingBold: true,
+    showSubheading: false, subheadingText: 'What our happy customers say', subheadingFont: 'Inter', subheadingColor: '#64748b',
+    carouselFocusZoom: false, carouselSameSize: true, 
+  };
+
+  // --- STATE ---
   const [formSettings, setFormSettings] = useState({
     header_title: '',
     custom_message: '',
@@ -51,6 +61,8 @@ const SpaceOverview = () => {
     theme_config: DEFAULT_THEME_CONFIG,
     logo_url: null
   });
+
+  const [widgetSettings, setWidgetSettings] = useState(DEFAULT_WIDGET_SETTINGS);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -66,12 +78,13 @@ const SpaceOverview = () => {
 
   const fetchSpaceData = async () => {
     try {
-      // 1. Fetch Space Data including the settings relation
+      // 1. Fetch Space Data including BOTH settings tables
       const { data: spaceData, error: spaceError } = await supabase
         .from('spaces')
         .select(`
           *,
-          space_form_settings (*)
+          space_form_settings (*),
+          widget_configurations (*)
         `)
         .eq('id', spaceId)
         .eq('owner_id', user.id)
@@ -79,36 +92,39 @@ const SpaceOverview = () => {
 
       if (spaceError) throw spaceError;
 
-      // 2. Robust Extraction of Settings
-      // Handle cases where relation returns an array (common) or single object
-      let fetchedSettings = {};
-      if (Array.isArray(spaceData.space_form_settings) && spaceData.space_form_settings.length > 0) {
-        fetchedSettings = spaceData.space_form_settings[0];
-      } else if (spaceData.space_form_settings && typeof spaceData.space_form_settings === 'object') {
-        fetchedSettings = spaceData.space_form_settings;
-      }
-      
       setSpace(spaceData);
-      
-      // 3. Deep Merge Defaults with Fetched Data
-      // This ensures that if 'viewMode' exists in DB, it is preserved.
-      // If 'theme' is missing in DB, default is used.
-      const mergedThemeConfig = {
-        ...DEFAULT_THEME_CONFIG,
-        ...(fetchedSettings.theme_config || {})
-      };
+
+      // 2. Handle Form Settings
+      let fetchedFormSettings = {};
+      if (Array.isArray(spaceData.space_form_settings) && spaceData.space_form_settings.length > 0) {
+        fetchedFormSettings = spaceData.space_form_settings[0];
+      } else if (spaceData.space_form_settings) {
+        fetchedFormSettings = spaceData.space_form_settings;
+      }
 
       setFormSettings({
-        header_title: fetchedSettings.header_title || spaceData.header_title || '',
-        custom_message: fetchedSettings.custom_message || spaceData.custom_message || '',
-        // Use ?? operator to respect 'false' values from DB
-        collect_star_rating: fetchedSettings.collect_star_rating ?? true,
-        collect_video: fetchedSettings.collect_video ?? true,
-        collect_photo: fetchedSettings.collect_photo ?? false,
-        thank_you_title: fetchedSettings.thank_you_title || 'Thank you!',
-        thank_you_message: fetchedSettings.thank_you_message || 'Your testimonial has been submitted.',
-        theme_config: mergedThemeConfig,
+        header_title: fetchedFormSettings.header_title || spaceData.header_title || '',
+        custom_message: fetchedFormSettings.custom_message || spaceData.custom_message || '',
+        collect_star_rating: fetchedFormSettings.collect_star_rating ?? true,
+        collect_video: fetchedFormSettings.collect_video ?? true,
+        collect_photo: fetchedFormSettings.collect_photo ?? false,
+        thank_you_title: fetchedFormSettings.thank_you_title || 'Thank you!',
+        thank_you_message: fetchedFormSettings.thank_you_message || 'Your testimonial has been submitted.',
+        theme_config: { ...DEFAULT_THEME_CONFIG, ...(fetchedFormSettings.theme_config || {}) },
         logo_url: spaceData.logo_url 
+      });
+
+      // 3. Handle Widget Settings
+      let fetchedWidgetSettings = {};
+      if (Array.isArray(spaceData.widget_configurations) && spaceData.widget_configurations.length > 0) {
+        fetchedWidgetSettings = spaceData.widget_configurations[0].settings || {};
+      } else if (spaceData.widget_configurations) {
+        fetchedWidgetSettings = spaceData.widget_configurations.settings || {};
+      }
+
+      setWidgetSettings({
+        ...DEFAULT_WIDGET_SETTINGS,
+        ...fetchedWidgetSettings
       });
 
       // 4. Fetch Testimonials
@@ -164,68 +180,63 @@ const SpaceOverview = () => {
     }
   };
 
-  // --- SAVE LOGIC ---
+  // --- SAVE LOGIC: EDIT FORM ---
   const saveFormSettings = async (settingsToSave = formSettings, logoFile = null) => {
     setSaving(true);
     try {
       let finalLogoUrl = settingsToSave.logo_url;
 
-      // 1. Upload Logo if a new file is provided
       if (logoFile) {
         const fileExt = logoFile.name.split('.').pop();
         const fileName = `${spaceId}/${uuidv4()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('space_logos') 
-          .upload(fileName, logoFile);
-
+        const { error: uploadError } = await supabase.storage.from('space_logos').upload(fileName, logoFile);
         if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('space_logos')
-          .getPublicUrl(fileName);
-
+        const { data: { publicUrl } } = supabase.storage.from('space_logos').getPublicUrl(fileName);
         finalLogoUrl = publicUrl;
       }
 
-      // 2. Separate Settings
-      // Important: logo_url belongs to 'spaces' table, others to 'space_form_settings'
       const { logo_url, ...formSpecificSettings } = settingsToSave;
 
-      // 3. Update 'spaces' table (Logo is stored here)
-      const { error: spaceError } = await supabase
-        .from('spaces')
-        .update({ logo_url: finalLogoUrl })
-        .eq('id', spaceId);
+      await supabase.from('spaces').update({ logo_url: finalLogoUrl }).eq('id', spaceId);
       
-      if (spaceError) throw spaceError;
-
-      // 4. Update 'space_form_settings' table
-      // We pass the settings exactly as they are in state (including the merged theme_config)
       const { error: settingsError } = await supabase
         .from('space_form_settings')
-        .upsert({ 
-          space_id: spaceId,
-          ...formSpecificSettings
-        }, { onConflict: 'space_id' });
+        .upsert({ space_id: spaceId, ...formSpecificSettings }, { onConflict: 'space_id' });
 
       if (settingsError) throw settingsError;
 
-      // 5. Update Local State to reflect changes immediately
       setSpace({ ...space, logo_url: finalLogoUrl });
       setFormSettings({ ...settingsToSave, logo_url: finalLogoUrl });
-      
-      // SILENT SUCCESS: Logic complete. Visual feedback is handled by button animation in EditFormTab.
 
     } catch (error) {
       console.error(error);
-      toast.error('Save Failed', {
-        description: 'We could not save your changes. Please try again.',
-      });
-      // Re-throw so EditFormTab knows it failed
+      toast.error('Save Failed', { description: 'We could not save your changes.' });
       throw error;
     } finally {
       setSaving(false);
+    }
+  };
+
+  // --- SAVE LOGIC: WIDGET ---
+  const saveWidgetSettings = async (settingsToSave) => {
+    // This function mimics the behavior of saveFormSettings but for the widget
+    try {
+      const { error } = await supabase
+        .from('widget_configurations')
+        .upsert({ 
+          space_id: spaceId,
+          settings: settingsToSave
+        }, { onConflict: 'space_id' });
+
+      if (error) throw error;
+      
+      // Update local state is handled by the WidgetTab calling setWidgetSettings,
+      // but we ensure it's synced here if needed.
+      setWidgetSettings(settingsToSave);
+      
+    } catch (error) {
+      console.error('Error saving widget settings:', error);
+      throw error; // Throw so the child component can show the error state
     }
   };
 
@@ -240,10 +251,8 @@ const SpaceOverview = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
-      {/* Premium Toast Provider */}
       <Toaster richColors position="bottom-right" />
 
-      {/* Header */}
       <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
@@ -268,7 +277,6 @@ const SpaceOverview = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-8 bg-white/50 dark:bg-gray-800/50 backdrop-blur p-1">
@@ -303,8 +311,16 @@ const SpaceOverview = () => {
             />
           </TabsContent>
 
+          {/* PASSING PROPS TO WIDGET TAB */}
           <TabsContent value="widget" className="mt-0">
-            <WidgetTab testimonials={testimonials} spaceId={spaceId} activeTab={activeTab} />
+            <WidgetTab 
+              testimonials={testimonials} 
+              spaceId={spaceId} 
+              activeTab={activeTab}
+              widgetSettings={widgetSettings}
+              setWidgetSettings={setWidgetSettings}
+              saveWidgetSettings={saveWidgetSettings}
+            />
           </TabsContent>
 
           <TabsContent value="settings">

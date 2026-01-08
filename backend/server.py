@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, dict
 import uuid
 from datetime import datetime, timezone
 
@@ -59,8 +59,59 @@ class SpacePublic(BaseModel):
     custom_message: Optional[str] = None
     collect_star_rating: bool
 
+class WidgetSettingsUpdate(BaseModel):
+    settings: Dict[str, Any]
 
-# Routes
+# --- Routes ---
+
+# --- WIDGET SETTINGS ROUTES ---
+
+@api_router.get("/widget-settings/{space_id}")
+async def get_widget_settings(space_id: str):
+    """Retrieve widget configurations for a specific space"""
+    try:
+        # Fetch settings from the 'widget_configurations' table
+        response = supabase.table('widget_configurations') \
+            .select('settings') \
+            .eq('space_id', space_id) \
+            .execute()
+        
+        # If data exists, return it
+        if response.data and len(response.data) > 0:
+            return {"status": "success", "settings": response.data[0]['settings']}
+        
+        # If no data found, return empty dict (frontend will use defaults)
+        return {"status": "success", "settings": {}}
+
+    except Exception as e:
+        logger.error(f"Error fetching widget settings: {e}")
+        # Return empty on error so the UI doesn't crash, just uses defaults
+        return {"status": "error", "settings": {}}
+
+
+@api_router.post("/widget-settings/{space_id}")
+async def save_widget_settings(space_id: str, config: WidgetSettingsUpdate):
+    """Save or update widget configurations for a space"""
+    try:
+        # Upsert data: This updates if the space_id exists, or inserts if it's new
+        # We assume you created the 'widget_configurations' table as per previous SQL instructions
+        data = {
+            'space_id': space_id,
+            'settings': config.settings,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+        response = supabase.table('widget_configurations') \
+            .upsert(data, on_conflict='space_id') \
+            .execute()
+            
+        return {"status": "success", "message": "Settings saved successfully"}
+
+    except Exception as e:
+        logger.error(f"Error saving widget settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @api_router.get("/")
 async def root():
     return {"message": "TrustFlow API", "version": "1.0.0"}
