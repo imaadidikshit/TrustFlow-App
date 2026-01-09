@@ -83,6 +83,15 @@ const WallOfLoveContent = () => {
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSnapping, setIsSnapping] = useState(false); 
+
+  // --- Interaction States ---
+  const [expandedId, setExpandedId] = useState(null);
+  const [expandedRect, setExpandedRect] = useState(null); 
+  const [isPaused, setIsPaused] = useState(false);
+  
+  // New: Store which cards are actually overflowing
+  const [overflowingCards, setOverflowingCards] = useState(new Set());
+  const textRefs = useRef({}); // Map to store refs of text elements
   
   // Settings State
   const [settings, setSettings] = useState({
@@ -97,7 +106,7 @@ const WallOfLoveContent = () => {
     testimonialStyle: 'clean',
     animation: 'fade',
     speed: 'normal',
-    carouselSameSize: true,
+    carouselSameSize: true, 
     showHeading: false,
     headingText: '',
     headingFont: 'Inter',
@@ -196,33 +205,77 @@ const WallOfLoveContent = () => {
     return [...displayedTestimonials, ...clones];
   }, [displayedTestimonials, settings.layout, visibleCount]);
 
-  // --- 6. Resize Logic ---
+  // --- STRICT OVERFLOW CHECKER ---
+  useLayoutEffect(() => {
+    const checkOverflow = () => {
+      const newOverflows = new Set();
+      Object.keys(textRefs.current).forEach((key) => {
+        const el = textRefs.current[key];
+        if (el && el.scrollHeight > el.clientHeight) {
+          newOverflows.add(key);
+        }
+      });
+      setOverflowingCards(prev => {
+        if (prev.size !== newOverflows.size) return newOverflows;
+        for (let item of newOverflows) if (!prev.has(item)) return newOverflows;
+        return prev;
+      });
+    };
+    checkOverflow();
+    window.addEventListener('resize', checkOverflow);
+    return () => window.removeEventListener('resize', checkOverflow);
+  }, [testimonials, settings, visibleCount]);
+
+
+  // --- 6. Resize Logic (Iframe Overflow Handler) ---
+  const handleResize = () => {
+    if (!outerContainerRef.current) return;
+    
+    let height = outerContainerRef.current.scrollHeight;
+    
+    // Check Actual Expanded Card Height
+    const expandedElement = document.getElementById('tf-expanded-overlay');
+    
+    if (expandedElement) {
+        const rect = expandedElement.getBoundingClientRect();
+        // Calculate needed bottom space relative to viewport/document
+        const neededHeight = rect.bottom + 60; 
+        if (neededHeight > height) {
+             height = neededHeight;
+        }
+    }
+
+    window.parent.postMessage({ type: 'trustflow-resize', height }, '*');
+
+    if (settings.layout === 'carousel') {
+      const rect = outerContainerRef.current.getBoundingClientRect();
+      const availableWidth = rect.width - PADDING_X; 
+      const isMobile = window.innerWidth < 640;
+      const cardWidthToUse = isMobile ? availableWidth : CARD_WIDTH;
+      const count = Math.floor((availableWidth + GAP) / (cardWidthToUse + GAP));
+      const safeCount = Math.max(1, count); 
+      setVisibleCount(safeCount);
+      const calculatedMask = (safeCount * CARD_WIDTH) + ((safeCount - 1) * GAP) + 40;
+      setMaskWidth(isMobile ? '100%' : `${calculatedMask}px`);
+    } else {
+      setMaskWidth('100%');
+    }
+  };
+
   useEffect(() => {
     if (loading || !outerContainerRef.current) return;
-    const handleResize = () => {
-      if (!outerContainerRef.current) return;
-      const height = outerContainerRef.current.scrollHeight;
-      window.parent.postMessage({ type: 'trustflow-resize', height }, '*');
-      if (settings.layout === 'carousel') {
-        const rect = outerContainerRef.current.getBoundingClientRect();
-        const availableWidth = rect.width - PADDING_X; 
-        const isMobile = window.innerWidth < 640;
-        const cardWidthToUse = isMobile ? availableWidth : CARD_WIDTH;
-        const count = Math.floor((availableWidth + GAP) / (cardWidthToUse + GAP));
-        const safeCount = Math.max(1, count); 
-        setVisibleCount(safeCount);
-        const calculatedMask = (safeCount * CARD_WIDTH) + ((safeCount - 1) * GAP) + 40;
-        setMaskWidth(isMobile ? '100%' : `${calculatedMask}px`);
-      } else {
-        setMaskWidth('100%');
-      }
-    };
     const observer = new ResizeObserver(handleResize);
     observer.observe(outerContainerRef.current);
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => { observer.disconnect(); window.removeEventListener('resize', handleResize); };
   }, [testimonials, settings.layout, loading, settings.theme]);
+
+  // Force resize when expansion happens/changes
+  useLayoutEffect(() => {
+      const t = setTimeout(handleResize, 100);
+      return () => clearTimeout(t);
+  }, [expandedId, expandedRect]);
 
   // --- 7. Navigation ---
   const handleNext = () => {
@@ -255,46 +308,32 @@ const WallOfLoveContent = () => {
     }
   };
 
+  // AUTO SCROLL LOGIC
   useEffect(() => {
     let interval;
-    if (settings.autoScroll && settings.layout === 'carousel') {
+    if (settings.autoScroll && settings.layout === 'carousel' && !isPaused) {
         interval = setInterval(handleNext, (settings.scrollSpeed || 3) * 1000);
     }
     return () => clearInterval(interval);
-  }, [settings.autoScroll, settings.scrollSpeed, settings.layout, carouselIndex]);
+  }, [settings.autoScroll, settings.scrollSpeed, settings.layout, carouselIndex, isPaused]);
 
-  // --- 8. Animation Variants Logic (RESTORED) ---
+  // --- 8. Animation Variants Logic ---
   const getAnimationVariants = () => {
     const { animation, speed } = settings;
     const dur = speed === 'fast' ? 0.3 : speed === 'slow' ? 0.8 : 0.5;
-
-    // Base properties for visible state
     const visibleState = { opacity: 1, y: 0, x: 0, scale: 1, rotateX: 0 };
     const transition = { duration: dur, ease: "easeOut" };
-
-    const variants = {
-        visible: { ...visibleState, transition },
-        hidden: { opacity: 0 }
-    };
+    const variants = { visible: { ...visibleState, transition }, hidden: { opacity: 0 } };
 
     switch (animation) {
-      case 'slideUp':
-        variants.hidden = { opacity: 0, y: 50 };
-        break;
-      case 'slideDown':
-        variants.hidden = { opacity: 0, y: -50 };
-        break;
-      case 'scale':
-        variants.hidden = { opacity: 0, scale: 0.8 };
-        break;
-      case 'pop':
+      case 'slideUp': variants.hidden = { opacity: 0, y: 50 }; break;
+      case 'slideDown': variants.hidden = { opacity: 0, y: -50 }; break;
+      case 'scale': variants.hidden = { opacity: 0, scale: 0.8 }; break;
+      case 'pop': 
         variants.hidden = { opacity: 0, scale: 0.5 };
         variants.visible.transition = { type: 'spring', stiffness: 300, damping: 20 };
         break;
-      case 'fade':
-      default:
-        variants.hidden = { opacity: 0 };
-        break;
+      case 'fade': default: variants.hidden = { opacity: 0 }; break;
     }
     return variants;
   };
@@ -302,27 +341,51 @@ const WallOfLoveContent = () => {
   // --- 9. Styles ---
   const getCardWidthPx = () => (window.innerWidth < 640 ? window.innerWidth - PADDING_X : CARD_WIDTH);
 
-  const getCardStyles = () => {
+  const getCardStyles = (isOverlay = false) => {
     const { cardTheme, layout, corners, shadow, border, hoverEffect, carouselSameSize } = settings;
-    let classes = 'p-5 md:p-6 transition-all duration-300 flex flex-col ';
+    // FIX NO 2: Removed generic 'transition-all' from base string
+    let classes = 'p-5 md:p-6 flex flex-col ';
     
-    if (layout === 'masonry') classes += 'h-auto ';
-    else if (layout === 'carousel') classes += carouselSameSize ? '!h-full ' : 'h-auto ';
-    else classes += '!h-full '; 
+    // Condition to STOP floating/sliding on overlay
+    if (!isOverlay) {
+        classes += 'transition-all duration-300 ';
+    } else {
+        // Overlay only transitions non-layout properties
+        classes += 'transition-[box-shadow,transform,background-color,border-color,opacity] duration-300 ';
+    }
     
+    // --- Height Logic ---
+    if (isOverlay) {
+        classes += 'h-auto '; 
+    } else if (layout === 'masonry') {
+        classes += 'h-auto ';
+    } else {
+        if (carouselSameSize) classes += '!h-full '; 
+        else classes += 'h-auto ';
+    }
+    
+    // Radius
     if (corners === 'sharp') classes += 'rounded-none ';
     else if (corners === 'round') classes += 'rounded-3xl ';
     else classes += 'rounded-xl ';
 
-    if (shadow === 'none') classes += 'shadow-none ';
-    else if (shadow === 'light') classes += 'shadow-sm ';
-    else if (shadow === 'strong') classes += 'shadow-xl ';
-    else classes += 'shadow-md ';
+    // Shadow
+    if (isOverlay) {
+        classes += 'shadow-2xl ring-1 ring-black/5 '; 
+    } else {
+        if (shadow === 'none') classes += 'shadow-none ';
+        else if (shadow === 'light') classes += 'shadow-sm ';
+        else if (shadow === 'strong') classes += 'shadow-xl ';
+        else classes += 'shadow-md ';
+    }
 
+    // Hover (Visuals apply to both now for consistency)
     if (hoverEffect === 'lift') classes += 'hover:-translate-y-1 hover:shadow-lg ';
     else if (hoverEffect === 'scale') classes += 'hover:scale-[1.01] hover:shadow-lg ';
     else if (hoverEffect === 'glow') classes += 'hover:shadow-violet-500/20 hover:border-violet-300 ';
+    
 
+    // Theme
     if (cardTheme === 'dark') classes += 'bg-slate-900 text-slate-100 ' + (border ? 'border border-slate-800 ' : 'border-0 ');
     else classes += 'bg-white text-slate-800 ' + (border ? 'border border-slate-100 ' : 'border-0 ');
 
@@ -330,7 +393,49 @@ const WallOfLoveContent = () => {
     else if (layout === 'carousel') classes += 'flex-shrink-0 w-[85vw] sm:w-[300px] '; 
     else if (layout === 'list') classes += 'w-full mb-4 ';
 
+    if (isOverlay) classes += ' z-50 pointer-events-auto ';
+
     return classes;
+  };
+
+  // Interaction Handlers (Now controls Pause + Expand)
+  const handleMouseEnter = (e, index, isOverflowing) => {
+    setIsPaused(true); // PAUSE
+    // STRICT CHECK: Only expand if strict overflow was detected
+    if (!isOverflowing) return; 
+    
+    if (window.innerWidth >= 640) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setExpandedRect(rect);
+        setExpandedId(index);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setIsPaused(false); // RESUME
+  };
+
+  const handleMobileClick = (e, index, isOverflowing) => {
+    setIsPaused(true); // PAUSE on Touch
+    if (!isOverflowing) return; // Strict check
+    
+    const isMobile = window.innerWidth < 640;
+    if (isMobile) {
+        if (expandedId === index) {
+            setExpandedId(null);
+            setIsPaused(false); // Resume if closing
+        } else {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setExpandedRect(rect);
+            setExpandedId(index);
+        }
+    }
+  };
+
+  const handleOverlayLeave = () => {
+    setExpandedId(null);
+    setExpandedRect(null);
+    setIsPaused(false); 
   };
 
   // --- RENDER ---
@@ -339,6 +444,68 @@ const WallOfLoveContent = () => {
 
   const isCarousel = settings.layout === 'carousel';
   const bubbleBgClass = settings.cardTheme === 'dark' ? 'bg-slate-800' : 'bg-slate-100';
+  const shouldAnimate = !settings.autoScroll; 
+
+  // --- CARD CONTENT GENERATOR ---
+  const renderCardContent = (testimonial, index, forOverlay = false) => {
+    const isBubble = settings.testimonialStyle === 'bubble';
+    
+    return (
+        <>
+            {testimonial.rating && ( 
+                <div className="flex gap-0.5 mb-2 sm:mb-3">
+                    {[...Array(5)].map((_, i) => (
+                    <Star key={i} className={`w-3.5 h-3.5 ${i < testimonial.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                    ))}
+                </div>
+            )}
+            
+            <div className={`flex-1 mb-auto flex flex-col justify-start ${forOverlay ? 'pb-6' : 'pb-4'}`}>
+                {testimonial.type === 'video' && testimonial.video_url ? (
+                    <StylishVideoPlayer videoUrl={testimonial.video_url} corners={settings.corners === 'sharp' ? 'rounded-none' : 'rounded-xl'} />
+                ) : (
+                    <div className={`
+                        ${isBubble ? `p-3 sm:p-4 ${bubbleBgClass} rounded-lg` : ''}
+                        ${settings.testimonialStyle === 'quote' ? 'pl-4 border-l-4 border-violet-400 italic' : ''}
+                        ${settings.testimonialStyle === 'clean' ? 'opacity-90' : ''}
+                    `}>
+                        <p 
+                            ref={el => { if (!forOverlay) textRefs.current[`${testimonial.id}-${index}`] = el; }}
+                            className="text-sm leading-relaxed whitespace-pre-line"
+                            style={forOverlay ? {} : {
+                                display: '-webkit-box',
+                                WebkitLineClamp: 5,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                                paddingBottom: '2px' 
+                            }}
+                        >
+                        {testimonial.content}
+                        </p>
+                    </div>
+                )}
+            </div>
+    
+            <div className="flex items-center gap-3 pt-3 sm:pt-4 border-t border-dashed border-gray-200/10 mt-2">
+                <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border border-white/20 shrink-0">
+                    <AvatarImage src={testimonial.respondent_photo_url} className="object-cover scale-110" />
+                    <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">{testimonial.respondent_name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <div className={`font-bold text-sm sm:text-base flex items-center gap-1.5`}>
+                    {testimonial.respondent_name || "Anonymous"}
+                    <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white fill-blue-500 shrink-0" />
+                    </div>
+                    <div className="text-[10px] sm:text-xs opacity-70">
+                    {testimonial.respondent_role || 'Verified User'}
+                    </div>
+                </div>
+            </div>
+        </>
+      );
+  }
+
+  const expandedTestimonial = expandedId !== null ? (isCarousel ? carouselItems : displayedTestimonials)[expandedId] : null;
 
   return (
     <motion.div 
@@ -346,8 +513,11 @@ const WallOfLoveContent = () => {
       animate={{ opacity: 1 }} 
       transition={{ duration: 0.3 }}
       ref={outerContainerRef} 
-      className="w-full relative group font-sans overflow-hidden" 
+      className="w-full relative group font-sans py-12" 
       style={{ minHeight: '100px' }}
+      // GLOBAL PAUSE HANDLER for entire area
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
     >
       {(settings.showHeading || settings.showSubheading) && (
         <div className="text-center mb-6 space-y-1 px-4">
@@ -375,6 +545,7 @@ const WallOfLoveContent = () => {
         </div>
       )}
 
+      {/* LIST CONTAINER */}
       <div 
         className="relative mx-auto transition-[width] duration-300 ease-in-out"
         style={isCarousel ? { width: maskWidth, overflow: 'hidden' } : { width: '100%' }}
@@ -382,7 +553,7 @@ const WallOfLoveContent = () => {
         <motion.div 
           ref={carouselConstraintsRef}
           className={`
-            ${isCarousel ? 'flex gap-4 sm:gap-6 items-stretch py-8 sm:py-12 px-5 sm:px-6 cursor-grab active:cursor-grabbing' : ''} 
+            ${isCarousel ? `flex gap-4 sm:gap-6 py-8 sm:py-12 px-5 sm:px-6 cursor-grab active:cursor-grabbing ${settings.carouselSameSize ? 'items-stretch' : 'items-start'}` : ''} 
             ${settings.layout === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-2 sm:p-4' : ''}
             ${settings.layout === 'masonry' ? 'block columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 p-2 sm:p-4' : ''}
             ${settings.layout === 'list' ? 'max-w-2xl mx-auto flex flex-col gap-4 p-2 sm:p-4' : ''}
@@ -392,74 +563,80 @@ const WallOfLoveContent = () => {
           animate={isCarousel ? { x: -(carouselIndex * (getCardWidthPx() + GAP)) } : {}}
           transition={isSnapping ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
         >
-          <AnimatePresence mode="wait">
-            {(isCarousel ? carouselItems : displayedTestimonials).map((testimonial, i) => {
+          {/* Base Cards Render */}
+          {(isCarousel ? carouselItems : displayedTestimonials).map((testimonial, i) => {
                 let isFocused = false;
                 if (isCarousel && settings.carouselFocusZoom) {
                     const relativeIndex = i - carouselIndex;
                     const centerOffset = Math.floor(visibleCount / 2);
                     if (relativeIndex === centerOffset) isFocused = true;
                 }
-                
-                // Animation Trigger: whileInView triggers when the item appears on screen
                 const variants = getAnimationVariants();
-                const focusStyle = { scale: 1.05, opacity: 1, zIndex: 10, y: 0 }; // Ensure Focus resets Y
-
+                const isOverflowing = overflowingCards.has(`${testimonial.id}-${i}`);
+                
                 return (
                   <motion.div
                     key={`${testimonial.id}-${i}`}
                     custom={i}
-                    initial="hidden"
-                    // If Focused, force focus styles (overriding variants). If NOT focused, rely on whileInView variants.
-                    animate={isFocused ? focusStyle : undefined}
+                    layoutId={`card-${i}`} // Sync ID with overlay
+                    initial={shouldAnimate ? "hidden" : "visible"}
                     whileInView="visible"
-                    viewport={{ once: true, margin: "-10%" }} // Triggers once when 10% in view
+                    viewport={{ once: true, margin: "-10%" }} 
                     variants={variants}
-                    className={getCardStyles()}
+                    animate={isFocused ? { scale: 1.05, opacity: 1, zIndex: 10 } : undefined}
+                    className={`relative group/card ${settings.carouselSameSize && !isCarousel ? 'h-full' : ''} ${settings.layout === 'masonry' ? 'mb-6 h-auto' : ''} ${isOverflowing ? 'cursor-zoom-in' : ''}`}
+                    
+                    // Trigger Expansion & Pause
+                    onMouseEnter={(e) => handleMouseEnter(e, i, isOverflowing)}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={(e) => handleMobileClick(e, i, isOverflowing)}
+                    
+                    // Hide base card when expanded
+                    style={{ opacity: expandedId === i ? 0 : 1 }}
                   >
-                    {testimonial.rating && ( 
-                      <div className="flex gap-0.5 mb-2 sm:mb-3">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-3.5 h-3.5 ${i < testimonial.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex-1 mb-4 flex flex-col">
-                      {testimonial.type === 'video' && testimonial.video_url ? (
-                        <StylishVideoPlayer videoUrl={testimonial.video_url} corners={settings.corners === 'sharp' ? 'rounded-none' : 'rounded-xl'} />
-                      ) : (
-                        <p className={`text-sm leading-relaxed line-clamp-6 whitespace-pre-line
-                          ${settings.testimonialStyle === 'bubble' ? `p-3 sm:p-4 ${bubbleBgClass} rounded-lg` : ''}
-                          ${settings.testimonialStyle === 'quote' ? 'pl-4 border-l-4 border-violet-400 italic' : ''}
-                          ${settings.testimonialStyle === 'clean' ? 'opacity-90' : ''}
-                        `}>
-                          {testimonial.content}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-3 mt-auto pt-3 sm:pt-4 border-t border-dashed border-gray-200/10">
-                      <Avatar className="w-10 h-10 sm:w-12 sm:h-12 border border-white/20 shrink-0">
-                        <AvatarImage src={testimonial.respondent_photo_url} className="object-cover scale-110" />
-                        <AvatarFallback className="bg-violet-100 text-violet-700 text-xs">{testimonial.respondent_name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className={`font-bold text-sm sm:text-base flex items-center gap-1.5`}>
-                          {testimonial.respondent_name || "Anonymous"}
-                          <BadgeCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white fill-blue-500 shrink-0" />
-                        </div>
-                        <div className="text-[10px] sm:text-xs opacity-70">
-                          {testimonial.respondent_role || 'Verified User'}
-                        </div>
-                      </div>
+                    <div className={getCardStyles(false)}>
+                        {renderCardContent(testimonial, i, false)}
                     </div>
                   </motion.div>
                 );
             })}
-          </AnimatePresence>
         </motion.div>
       </div>
+
+      {/* OVERLAY PORTAL FOR EXPANDED CARD */}
+      <AnimatePresence>
+        {expandedId !== null && expandedTestimonial && expandedRect && (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 pointer-events-none"
+            >
+                <motion.div
+                    id="tf-expanded-overlay" 
+                    // FIX NO 1: Key ensures React destroys old overlay and creates new one for clean switch
+                    key={expandedId}
+                    layoutId={`card-${expandedId}`} 
+                    className={getCardStyles(true)}
+                    onMouseEnter={() => setIsPaused(true)}
+                    style={{
+                        position: 'fixed',
+                        top: expandedRect.top,
+                        left: expandedRect.left,
+                        width: expandedRect.width,
+                        minHeight: expandedRect.height, 
+                        height: 'auto', 
+                        pointerEvents: 'auto' 
+                    }}
+                    onMouseLeave={handleOverlayLeave}
+                    onClick={() => { setExpandedId(null); setIsPaused(false); }} 
+                >
+                    {renderCardContent(expandedTestimonial, expandedId, true)}
+                </motion.div>
+            </motion.div>
+        )}
+      </AnimatePresence>
+
     </motion.div>
   );
 };
