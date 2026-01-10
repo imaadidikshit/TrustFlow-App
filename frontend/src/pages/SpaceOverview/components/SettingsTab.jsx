@@ -9,22 +9,22 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Settings, Trash2, Globe, Mail, Download, AlertTriangle, 
   CheckCircle, AlertCircle, Save, Loader2, Lock, ShieldAlert,
-  X, Check, Bell
+  X, Check
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import confetti from 'canvas-confetti';
 
 // --- SHARED COMPONENTS ---
 
-// 1. Premium Notification Toast (FIXED CENTER POSITION)
+// 1. Premium Notification Toast (Center Position)
 const NotificationToast = ({ message, type, isVisible }) => {
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 50, x: "-50%" }} // Start slightly down, centered horizontally
-          animate={{ opacity: 1, y: 0, x: "-50%" }}  // Animate to normal height, keep centered
-          exit={{ opacity: 0, y: 20, x: "-50%" }}    // Exit slightly down, keep centered
+          initial={{ opacity: 0, y: 50, x: "-50%" }}
+          animate={{ opacity: 1, y: 0, x: "-50%" }}
+          exit={{ opacity: 0, y: 20, x: "-50%" }}
           transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
           className="fixed bottom-10 left-1/2 z-[10000] flex items-center justify-center gap-3 px-6 py-3.5 rounded-full shadow-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 w-auto max-w-[90vw] whitespace-nowrap"
         >
@@ -46,122 +46,79 @@ const NotificationToast = ({ message, type, isVisible }) => {
   );
 };
 
-// 2. Password Verification Modal
-const PasswordModal = ({ isOpen, onClose, onVerify, isVerifying, actionType }) => {
-  const [password, setPassword] = useState('');
-  
-  const getMessage = () => {
-    if (actionType === 'delete_space') {
-      return "Permanently delete this space and all data.";
-    } else if (actionType === 'update_settings') {
-      return "Update sensitive settings (Slug). Existing links will break.";
+// 2. NEW: Smart Confirmation Modal (Works for Google/OAuth Users)
+// PasswordModal ko hata kar ye lagaya hai.
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, isProcessing, actionType, expectedMatch }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setInputValue('');
+      setError(false);
     }
-    return "Please enter your password to continue.";
+  }, [isOpen]);
+
+  const handleSubmit = () => {
+    if (inputValue === expectedMatch) {
+      onConfirm();
+    } else {
+      setError(true);
+    }
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 w-screen h-screen bg-black/40 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="relative w-full max-w-sm bg-white dark:bg-gray-950 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden z-[9991]"
-          >
-            <div className="p-6">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <Lock className="w-6 h-6 text-blue-600 dark:text-blue-500" />
-              </div>
-              <h3 className="text-lg font-semibold text-center mb-2">Verify it's you</h3>
-              <p className="text-sm text-muted-foreground text-center mb-6">
-                {getMessage()}
-              </p>
-              
-              <div className="space-y-4">
-                <Input 
-                  type="password" 
-                  placeholder="Enter Password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-gray-50 dark:bg-gray-900"
-                />
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
-                  <Button 
-                    onClick={() => onVerify(password)} 
-                    disabled={isVerifying || !password}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : "Verify"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-};
+  if (!isOpen) return null;
 
-// 3. Final Delete Confirmation Modal
-const FinalDeleteModal = ({ isOpen, onClose, onConfirm, isDeleting }) => {
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 w-screen h-screen bg-black/40 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="relative w-full max-w-sm bg-white dark:bg-gray-950 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden z-[9991]"
-          >
-            <div className="p-6 flex flex-col items-center text-center">
-              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-4">
-                <ShieldAlert className="w-6 h-6 text-red-600 dark:text-red-500" />
-              </div>
-              <h3 className="text-lg font-bold text-red-600 dark:text-red-500 mb-2">
-                Permanently Delete Space?
-              </h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                This will wipe <strong>all testimonials, forms, and settings</strong> associated with this space. This action is irreversible.
-              </p>
-              
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" onClick={onClose} disabled={isDeleting} className="flex-1">
-                  Wait, Keep it
-                </Button>
-                <Button 
-                  onClick={onConfirm} 
-                  disabled={isDeleting}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white border-none"
-                >
-                  {isDeleting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Deleting...
-                    </div>
-                  ) : "Delete Forever"}
-                </Button>
-              </div>
+      <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 w-screen h-screen bg-black/40 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+          className="relative w-full max-w-md bg-white dark:bg-gray-950 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden z-[9991] p-6"
+        >
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
             </div>
-          </motion.div>
-        </div>
-      )}
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              {actionType === 'delete' ? 'Delete Space?' : 'Change Critical Settings?'}
+            </h3>
+            <p className="text-sm text-muted-foreground mt-2">
+              This action cannot be undone. To confirm, please type <span className="font-mono font-bold text-gray-900 dark:text-gray-200 select-all">{expectedMatch}</span> below.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Input 
+              value={inputValue}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                setError(false);
+              }}
+              placeholder={`Type ${expectedMatch}`}
+              className={error ? "border-red-500 ring-red-500 focus-visible:ring-red-500" : ""}
+            />
+            {error && <p className="text-xs text-red-500">Value does not match.</p>}
+            
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={isProcessing || inputValue !== expectedMatch}
+                variant="destructive"
+                className="flex-1"
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : "I understand, confirm"}
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
     </AnimatePresence>
   );
 };
@@ -184,12 +141,10 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [notification, setNotification] = useState({ isVisible: false, message: '', type: 'success' });
   
-  // Modal States
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordAction, setPasswordAction] = useState(null); // 'delete_space' or 'update_settings'
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // MODAL STATES (Updated for new logic)
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null); // 'delete' or 'update_slug'
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setNotification({ isVisible: true, message, type });
@@ -234,7 +189,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
 
         if (data) {
           setSlugStatus('taken');
-          setSlugError('Slug not available. Please choose another one.');
+          setSlugError('Slug not available.');
         } else {
           setSlugStatus('available');
           setSlugError('');
@@ -249,21 +204,22 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
   }, [spaceSlug, space.slug, spaceId]);
 
 
-  // --- HANDLER: INITIATE GENERAL SAVE ---
+  // --- HANDLER: INITIATE SAVE ---
   const initiateGeneralSave = () => {
     if (slugStatus === 'taken' || slugStatus === 'checking' || slugStatus === 'error') return;
     
-    // If slug is changing, require password
+    // Agar Slug change ho raha hai, to Confirmation Modal kholo
     if (spaceSlug !== space.slug) {
-      setPasswordAction('update_settings');
-      setShowPasswordModal(true);
+      setConfirmAction('update_slug');
+      setShowConfirmModal(true);
     } else {
-      // Just name change, save directly
+      // Sirf naam change ho raha hai, seedha save karo
       handleGeneralSave();
     }
   };
 
-  // --- 1. CORE SAVE LOGIC ---
+  // --- CORE ACTIONS (Save/Delete) ---
+  
   const handleGeneralSave = async () => {
     setIsSaving(true);
     setSaveSuccess(false);
@@ -276,46 +232,55 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
 
       if (error) throw error;
       
-      // Update Parent State
       updateSpaceState({ space_name: spaceName, slug: spaceSlug });
+      setShowConfirmModal(false); // Close modal if open
 
-      // Success UI
+      // Success Effect
       setSaveSuccess(true);
       const scalar = 2;
       confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
+        particleCount: 100, spread: 70, origin: { y: 0.6 },
         colors: ['#8b5cf6', '#10b981', '#3b82f6'],
         disableForReducedMotion: true
       });
-
       setTimeout(() => setSaveSuccess(false), 3000);
 
     } catch (error) {
       console.error(error);
-      showToast("Something went wrong. Please try again.", "error");
+      showToast("Something went wrong.", "error");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // --- 2. EXPORT DATA (Fixed: Removed Permission Column) ---
+  const handleFinalDelete = async () => {
+    setIsProcessingAction(true);
+    try {
+      await deleteSpace(); 
+      navigate('/dashboard'); 
+    } catch (error) {
+      setShowConfirmModal(false);
+      showToast("Delete failed. Please try again.", "error");
+      setIsProcessingAction(false);
+    }
+  };
+
+  // --- ROUTER FOR CONFIRMATION ---
+  const onModalConfirm = () => {
+    if (confirmAction === 'delete') {
+      handleFinalDelete();
+    } else if (confirmAction === 'update_slug') {
+      handleGeneralSave();
+    }
+  };
+
+  // --- EXPORT DATA ---
   const handleExportData = async (format = 'csv') => {
     try {
-      const { data, error } = await supabase
-        .from('testimonials')
-        .select('*')
-        .eq('space_id', spaceId);
-        
+      const { data, error } = await supabase.from('testimonials').select('*').eq('space_id', spaceId);
       if (error) throw error;
+      if (!data || data.length === 0) { showToast("No data to export", "error"); return; }
 
-      if (!data || data.length === 0) {
-        showToast("No data to export", "error");
-        return;
-      }
-
-      // Filter & Rename Columns for User Friendliness
       const cleanedData = data.map(item => ({
         Date: new Date(item.created_at).toLocaleDateString(),
         Name: item.respondent_name || 'Anonymous',
@@ -323,71 +288,20 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
         Rating: item.rating || '-',
         Message: item.content || '-',
         Type: item.type
-        // REMOVED PERMISSION COLUMN
       }));
 
-      // Generate Content
       const headers = Object.keys(cleanedData[0]).join(",");
-      const csvContent = "data:text/csv;charset=utf-8," 
-        + headers + "\n"
-        + cleanedData.map(row => Object.values(row).map(val => `"${val}"`).join(",")).join("\n");
-
+      const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + cleanedData.map(row => Object.values(row).map(val => `"${val}"`).join(",")).join("\n");
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      
-      // Extension based on format selection
-      const extension = format === 'excel' ? 'xls' : 'csv'; 
-      link.setAttribute("download", `${spaceSlug}_testimonials.${extension}`);
-      
+      link.setAttribute("download", `${spaceSlug}_testimonials.${format === 'excel' ? 'xls' : 'csv'}`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      showToast(`Exported as ${format.toUpperCase()} successfully`, "success");
+      showToast(`Exported as ${format.toUpperCase()}`, "success");
     } catch (error) {
-      showToast("Export failed. Try again.", "error");
-    }
-  };
-
-  // --- 3. SECURE FLOW HANDLERS ---
-  
-  const verifyPassword = async (passwordInput) => {
-    setIsVerifying(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: userEmail,
-        password: passwordInput,
-      });
-
-      if (error) throw error;
-
-      // Password Correct -> Proceed based on action
-      setShowPasswordModal(false);
-      
-      if (passwordAction === 'delete_space') {
-        setShowDeleteConfirm(true);
-      } else if (passwordAction === 'update_settings') {
-        handleGeneralSave(); // Proceed to save slug
-      }
-
-    } catch (error) {
-      showToast("Incorrect password. Please try again.", "error");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleFinalDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await deleteSpace(); 
-      navigate('/dashboard'); 
-    } catch (error) {
-      setShowDeleteConfirm(false);
-      showToast("Something went wrong. Please try again.", "error");
-    } finally {
-      setIsDeleting(false);
+      showToast("Export failed.", "error");
     }
   };
 
@@ -401,29 +315,22 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 px-2 sm:px-0">
       
-      {/* --- NOTIFICATIONS & MODALS --- */}
-      <NotificationToast 
-        message={notification.message}
-        type={notification.type}
-        isVisible={notification.isVisible}
+      <NotificationToast message={notification.message} type={notification.type} isVisible={notification.isVisible} />
+
+      {/* NEW SMART CONFIRMATION MODAL */}
+      <ConfirmationModal 
+        isOpen={showConfirmModal}
+        onClose={() => {
+            setShowConfirmModal(false);
+            setIsProcessingAction(false);
+        }}
+        onConfirm={onModalConfirm}
+        isProcessing={isProcessingAction || isSaving}
+        actionType={confirmAction}
+        // Agar delete kar rahe hain toh CURRENT slug mangao, agar update kar rahe hain toh bhi CURRENT slug confirm karao
+        expectedMatch={space.slug} 
       />
 
-      <PasswordModal 
-        isOpen={showPasswordModal}
-        actionType={passwordAction}
-        isVerifying={isVerifying}
-        onClose={() => setShowPasswordModal(false)}
-        onVerify={verifyPassword}
-      />
-
-      <FinalDeleteModal 
-        isOpen={showDeleteConfirm}
-        isDeleting={isDeleting}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleFinalDelete}
-      />
-
-      {/* --- HEADER --- */}
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Space Settings</h2>
         <p className="text-muted-foreground">Manage your space preferences and advanced configurations.</p>
@@ -448,9 +355,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             <div className="grid gap-2">
               <Label htmlFor="spaceName">Space Name</Label>
               <Input 
-                id="spaceName" 
-                value={spaceName} 
-                onChange={(e) => setSpaceName(e.target.value)}
+                id="spaceName" value={spaceName} onChange={(e) => setSpaceName(e.target.value)}
                 className="max-w-md bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
               />
             </div>
@@ -468,9 +373,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                         value={spaceSlug} 
                         onChange={(e) => setSpaceSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
                         className={`sm:rounded-l-none pr-10 bg-white dark:bg-gray-950 transition-colors duration-200 ${getSlugInputClass()}`}
-                        placeholder="my-space-name"
                     />
-                    
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         {slugStatus === 'checking' && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
                         {slugStatus === 'available' && <CheckCircle className="w-4 h-4 text-green-500 animate-in zoom-in" />}
@@ -478,114 +381,67 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                     </div>
                   </div>
                 </div>
-                
                 <div className="mt-1.5 h-4 text-[11px] font-medium">
-                    {slugStatus === 'checking' && <span className="text-muted-foreground flex items-center gap-1">Checking availability...</span>}
-                    {slugStatus === 'available' && <span className="text-green-600 dark:text-green-400 flex items-center gap-1">Slug is available</span>}
-                    {slugStatus === 'taken' && <span className="text-red-600 dark:text-red-400 flex items-center gap-1">Slug not available. Please choose another one.</span>}
-                    {slugStatus === 'error' && <span className="text-red-600 dark:text-red-400 flex items-center gap-1">{slugError}</span>}
+                    {slugStatus === 'available' && <span className="text-green-600 flex items-center gap-1">Slug is available</span>}
+                    {slugStatus === 'taken' && <span className="text-red-600 flex items-center gap-1">Slug taken.</span>}
                 </div>
               </div>
-              <p className="text-[12px] text-muted-foreground mt-1">Warning: Changing this will break existing links to your collection page.</p>
             </div>
           </CardContent>
           <CardFooter className="bg-gray-50/50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-800 py-3">
             <Button 
                 onClick={initiateGeneralSave} 
                 disabled={isSaving || slugStatus === 'taken' || slugStatus === 'checking' || slugStatus === 'error'} 
-                className={`ml-auto transition-all duration-300 ${saveSuccess ? 'bg-green-600 hover:bg-green-700 w-32' : 'bg-violet-600 hover:bg-violet-700 w-36'}`}
+                className={`ml-auto transition-all duration-300 ${saveSuccess ? 'bg-green-600 w-32' : 'bg-violet-600 w-36'}`}
             >
-              {isSaving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : saveSuccess ? (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Saved!
-                  </>
-              ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Changes
-                  </>
-              )}
+              {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : saveSuccess ? <>Saved!</> : <>Save Changes</>}
             </Button>
           </CardFooter>
         </Card>
 
-        {/* 2. NOTIFICATIONS & EXPORT */}
+        {/* 2. NOTIFICATIONS & EXPORT (Same as before) */}
         <div className="grid md:grid-cols-2 gap-6">
-          
-          {/* Notifications */}
           <Card className="border-gray-200 dark:border-gray-800 shadow-sm flex flex-col">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                  <Mail className="w-5 h-5 text-blue-600" />
-                </div>
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg"><Mail className="w-5 h-5 text-blue-600" /></div>
                 <CardTitle className="text-lg">Notifications</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="flex-1 space-y-4">
               <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="email-notif" className="flex flex-col space-y-1">
-                  <span>Email Alerts</span>
-                  <span className="font-normal text-xs text-muted-foreground">Get notified via email for new testimonials.</span>
-                </Label>
-                <Switch 
-                  id="email-notif" 
-                  checked={emailNotifications} 
-                  onCheckedChange={setEmailNotifications} 
-                />
+                <Label htmlFor="email-notif">Email Alerts</Label>
+                <Switch id="email-notif" checked={emailNotifications} onCheckedChange={setEmailNotifications} />
               </div>
               <div className="flex items-center justify-between space-x-2">
-                <Label htmlFor="browser-notif" className="flex flex-col space-y-1">
-                  <span>Browser Notifications</span>
-                  <span className="font-normal text-xs text-muted-foreground">Receive push notifications on your device.</span>
-                </Label>
-                <Switch 
-                  id="browser-notif" 
-                  checked={browserNotifications} 
-                  onCheckedChange={setBrowserNotifications} 
-                />
+                <Label htmlFor="browser-notif">Browser Notifications</Label>
+                <Switch id="browser-notif" checked={browserNotifications} onCheckedChange={setBrowserNotifications} />
               </div>
             </CardContent>
           </Card>
 
-          {/* Export Data */}
           <Card className="border-gray-200 dark:border-gray-800 shadow-sm flex flex-col">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                  <Download className="w-5 h-5 text-green-600" />
-                </div>
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg"><Download className="w-5 h-5 text-green-600" /></div>
                 <CardTitle className="text-lg">Export Data</CardTitle>
               </div>
             </CardHeader>
             <CardContent className="flex-1">
-              <p className="text-sm text-muted-foreground mb-4">
-                Download a clean report of your testimonials.
-              </p>
+              <p className="text-sm text-muted-foreground mb-4">Download a clean report of your testimonials.</p>
               <div className="flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => handleExportData('csv')}>
-                  <Download className="w-4 h-4 mr-2" />
-                  CSV
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => handleExportData('excel')}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Excel
-                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => handleExportData('csv')}>CSV</Button>
+                <Button variant="outline" className="flex-1" onClick={() => handleExportData('excel')}>Excel</Button>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* 3. DANGER ZONE */}
+        {/* 3. DANGER ZONE (Updated to use Confirm Action) */}
         <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-900/10 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
               <div>
                 <CardTitle className="text-lg text-red-700 dark:text-red-400">Danger Zone</CardTitle>
                 <CardDescription>Irreversible actions for this space.</CardDescription>
@@ -596,15 +452,13 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white dark:bg-gray-950 rounded-lg border border-red-100 dark:border-red-900/30 gap-4">
               <div className="text-center sm:text-left">
                 <h4 className="font-medium text-red-900 dark:text-red-300">Delete this Space</h4>
-                <p className="text-sm text-muted-foreground">
-                  Permanently remove this space and all of its data.
-                </p>
+                <p className="text-sm text-muted-foreground">Permanently remove this space and all of its data.</p>
               </div>
               <Button 
                 variant="destructive" 
                 onClick={() => {
-                  setPasswordAction('delete_space');
-                  setShowPasswordModal(true);
+                  setConfirmAction('delete');
+                  setShowConfirmModal(true);
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-2" />

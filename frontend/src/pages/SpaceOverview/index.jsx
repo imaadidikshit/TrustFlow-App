@@ -16,8 +16,8 @@ import { v4 as uuidv4 } from 'uuid';
 // Import Sub-components
 import InboxTab from './components/InboxTab';
 import EditFormTab from './components/EditFormTab';
-import WidgetTab from './components/WidgetTab';
 import ShareTab from './components/ShareTab';
+import WidgetTab from './components/WidgetTab';
 import SettingsTab from './components/SettingsTab';
 
 const SpaceOverview = () => {
@@ -79,7 +79,6 @@ const SpaceOverview = () => {
 
   const fetchSpaceData = async () => {
     try {
-      // 1. Fetch Space Data including BOTH settings tables
       const { data: spaceData, error: spaceError } = await supabase
         .from('spaces')
         .select(`
@@ -95,7 +94,7 @@ const SpaceOverview = () => {
 
       setSpace(spaceData);
 
-      // 2. Handle Form Settings
+      // Handle Form Settings
       let fetchedFormSettings = {};
       if (Array.isArray(spaceData.space_form_settings) && spaceData.space_form_settings.length > 0) {
         fetchedFormSettings = spaceData.space_form_settings[0];
@@ -115,7 +114,7 @@ const SpaceOverview = () => {
         logo_url: spaceData.logo_url 
       });
 
-      // 3. Handle Widget Settings
+      // Handle Widget Settings
       let fetchedWidgetSettings = {};
       if (Array.isArray(spaceData.widget_configurations) && spaceData.widget_configurations.length > 0) {
         fetchedWidgetSettings = spaceData.widget_configurations[0].settings || {};
@@ -128,7 +127,7 @@ const SpaceOverview = () => {
         ...fetchedWidgetSettings
       });
 
-      // 4. Fetch Testimonials
+      // Fetch Testimonials
       const { data: testimonialsData, error: testimonialsError } = await supabase
         .from('testimonials')
         .select('*')
@@ -149,7 +148,6 @@ const SpaceOverview = () => {
     }
   };
 
-  // --- PARENT HELPER: UPDATE SPACE STATE FROM CHILDREN ---
   const updateSpaceState = (newSpaceData) => {
     setSpace(prev => ({ ...prev, ...newSpaceData }));
   };
@@ -174,7 +172,6 @@ const SpaceOverview = () => {
     }
   };
 
-  // --- DELETE TESTIMONIAL ---
   const deleteTestimonial = async (testimonialId) => {
     try {
       const { error } = await supabase.from('testimonials').delete().eq('id', testimonialId);
@@ -186,7 +183,6 @@ const SpaceOverview = () => {
     }
   };
 
-  // --- DELETE SPACE FUNCTION ---
   const deleteSpace = async () => {
     try {
       const { error } = await supabase
@@ -202,7 +198,6 @@ const SpaceOverview = () => {
     }
   };
 
-  // --- SAVE LOGIC: EDIT FORM ---
   const saveFormSettings = async (settingsToSave = formSettings, logoFile = null) => {
     setSaving(true);
     try {
@@ -239,7 +234,6 @@ const SpaceOverview = () => {
     }
   };
 
-  // --- SAVE LOGIC: WIDGET ---
   const saveWidgetSettings = async (settingsToSave) => {
     try {
       const { error } = await supabase
@@ -268,26 +262,37 @@ const SpaceOverview = () => {
   if (loading || !space) return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20"><div className="container mx-auto px-4 py-8"><div className="h-10 w-64 bg-gray-200 rounded animate-pulse mb-8" /></div></div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+    // UPDATED: Added MASTER KEY classes to hide scrollbars for ALL children ([&_*...])
+    <div className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
+      [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] 
+      [&_*::-webkit-scrollbar]:hidden [&_*]:[scrollbar-width:none] [&_*]:[-ms-overflow-style:none]">
+      
       <Toaster richColors position="bottom-right" />
 
+      {/* --- HEADER (MOBILE OPTIMIZED) --- */}
       <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold">{space.space_name}</h1>
-              <p className="text-sm text-muted-foreground">/{space.slug}</p>
+          <div className="flex flex-col md:flex-row md:items-center gap-4 md:justify-between">
+            
+            {/* Left: Back Btn + Title */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg md:text-xl font-bold truncate">{space.space_name}</h1>
+                <p className="text-xs md:text-sm text-muted-foreground truncate">/{space.slug}</p>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={copySubmitLink}>
-                <Copy className="w-4 h-4 mr-2" />
+
+            {/* Right: Actions (Full width on mobile) */}
+            <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
+              <Button variant="outline" className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10" onClick={copySubmitLink}>
+                <Copy className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                 Copy Link
               </Button>
-              <Button variant="outline" onClick={() => window.open(`/submit/${space.slug}`, '_blank')}>
-                <ExternalLink className="w-4 h-4 mr-2" />
+              <Button variant="outline" className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10" onClick={() => window.open(`/submit/${space.slug}`, '_blank')}>
+                <ExternalLink className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                 Preview Form
               </Button>
             </div>
@@ -295,68 +300,83 @@ const SpaceOverview = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-4 md:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-8 bg-white/50 dark:bg-gray-800/50 backdrop-blur p-1">
-            <TabsTrigger value="inbox" className="flex items-center gap-2">
-              <Inbox className="w-4 h-4" />
-              Inbox <Badge variant="secondary" className="ml-1 bg-violet-100 text-violet-700">{testimonials.length}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="edit-form" className="flex items-center gap-2">
-              <Edit className="w-4 h-4" />
-              Edit Form
-            </TabsTrigger>
-            <TabsTrigger value="widget" className="flex items-center gap-2">
-              <Code className="w-4 h-4" />
-              Widget
-            </TabsTrigger>
-            <TabsTrigger value="share" className="flex items-center gap-2">
-             <Share2 className="w-4 h-4" />
-              Share & QR
-             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              Settings
-            </TabsTrigger>
-          </TabsList>
+          
+          {/* --- TABS LIST --- */}
+          <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:pb-0">
+            <TabsList className="bg-white/50 dark:bg-gray-800/50 backdrop-blur p-1 inline-flex w-auto md:w-full md:flex-wrap h-auto min-w-full md:min-w-0 justify-start md:justify-center">
+              
+              <TabsTrigger value="inbox" className="flex items-center gap-2 flex-shrink-0">
+                <Inbox className="w-4 h-4" />
+                Inbox <Badge variant="secondary" className="ml-1 bg-violet-100 text-violet-700">{testimonials.length}</Badge>
+              </TabsTrigger>
+              
+              <TabsTrigger value="edit-form" className="flex items-center gap-2 flex-shrink-0">
+                <Edit className="w-4 h-4" />
+                Edit Form
+              </TabsTrigger>
+              
+              <TabsTrigger value="widget" className="flex items-center gap-2 flex-shrink-0">
+                <Code className="w-4 h-4" />
+                Widget
+              </TabsTrigger>
 
-          <TabsContent value="inbox">
-            <InboxTab testimonials={testimonials} toggleLike={toggleLike} deleteTestimonial={deleteTestimonial} setSelectedVideo={setSelectedVideo} copySubmitLink={copySubmitLink} />
-          </TabsContent>
+              <TabsTrigger value="share" className="flex items-center gap-2 flex-shrink-0">
+                <Share2 className="w-4 h-4" />
+                Share & QR
+              </TabsTrigger>
+              
+              <TabsTrigger value="settings" className="flex items-center gap-2 flex-shrink-0">
+                <Settings className="w-4 h-4" />
+                Settings
+              </TabsTrigger>
 
-          <TabsContent value="edit-form">
-            <EditFormTab 
-              formSettings={formSettings}
-              setFormSettings={setFormSettings}
-              saveFormSettings={saveFormSettings}
-              saving={saving}
-            />
-          </TabsContent>
+            </TabsList>
+          </div>
 
-          <TabsContent value="widget" className="mt-0">
-            <WidgetTab 
-              testimonials={testimonials} 
-              spaceId={spaceId} 
-              activeTab={activeTab}
-              widgetSettings={widgetSettings}
-              setWidgetSettings={setWidgetSettings}
-              saveWidgetSettings={saveWidgetSettings}
-            />
-          </TabsContent>
-          <TabsContent value="share" className="mt-0">
-            <ShareTab space={space} />
-          </TabsContent>
-          <TabsContent value="settings">
-            <SettingsTab 
-              space={space} 
-              spaceId={spaceId} 
-              navigate={navigate} 
-              copySubmitLink={copySubmitLink}
-              deleteSpace={deleteSpace}
-              updateSpaceState={updateSpaceState}
-              userEmail={user?.email} 
-            />
-          </TabsContent>
+          {/* --- CONTENT AREA --- */}
+          <div className="mt-4 md:mt-8">
+            <TabsContent value="inbox" className="mt-0">
+              <InboxTab testimonials={testimonials} toggleLike={toggleLike} deleteTestimonial={deleteTestimonial} setSelectedVideo={setSelectedVideo} copySubmitLink={copySubmitLink} />
+            </TabsContent>
+
+            <TabsContent value="edit-form" className="mt-0">
+              <EditFormTab 
+                formSettings={formSettings}
+                setFormSettings={setFormSettings}
+                saveFormSettings={saveFormSettings}
+                saving={saving}
+              />
+            </TabsContent>
+
+            <TabsContent value="share" className="mt-0">
+              <ShareTab space={space} />
+            </TabsContent>
+
+            <TabsContent value="widget" className="mt-0">
+              <WidgetTab 
+                testimonials={testimonials} 
+                spaceId={spaceId} 
+                activeTab={activeTab}
+                widgetSettings={widgetSettings}
+                setWidgetSettings={setWidgetSettings}
+                saveWidgetSettings={saveWidgetSettings}
+              />
+            </TabsContent>
+
+            <TabsContent value="settings" className="mt-0">
+              <SettingsTab 
+                space={space} 
+                spaceId={spaceId} 
+                navigate={navigate} 
+                copySubmitLink={copySubmitLink}
+                deleteSpace={deleteSpace}
+                updateSpaceState={updateSpaceState}
+                userEmail={user?.email} 
+              />
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
 
