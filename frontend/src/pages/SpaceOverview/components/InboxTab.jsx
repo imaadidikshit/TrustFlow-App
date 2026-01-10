@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { createPortal } from 'react-dom';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,31 +18,43 @@ import {
 // --- COMPONENTS START ---
 
 // 1. Premium Notification Toast (Handles Success & Error - Bottom Centered)
+// Isko purane NotificationToast ki jagah paste kar de
 const NotificationToast = ({ message, type, isVisible, onClose }) => {
-  return (
+  // Ye check zaroori hai taaki render error na aaye
+  if (typeof document === 'undefined') return null;
+
+  // createPortal use kar rahe hain taaki parent CSS isko hila na sake
+  return createPortal(
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 20, scale: 0.9 }}
-          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[100] flex items-center gap-3 px-6 py-3 rounded-full shadow-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+          initial={{ opacity: 0, y: 50, x: "-50%" }}
+          animate={{ opacity: 1, y: 0, x: "-50%" }}
+          exit={{ opacity: 0, y: 20, x: "-50%" }}
+          transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+          className="fixed bottom-10 left-1/2 z-[99999] flex items-center justify-center gap-3 px-6 py-3.5 rounded-full shadow-2xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 w-auto max-w-[90vw] whitespace-nowrap"
+          style={{ 
+            left: '50%', 
+            transform: 'translateX(-50%)', 
+            pointerEvents: 'none' 
+          }} 
         >
           {type === 'success' ? (
-            <div className="bg-green-100 dark:bg-green-900/30 p-1 rounded-full">
+            <div className="bg-green-100 dark:bg-green-900/30 p-1 rounded-full shrink-0">
               <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
             </div>
           ) : (
-            <div className="bg-red-100 dark:bg-red-900/30 p-1 rounded-full">
+            <div className="bg-red-100 dark:bg-red-900/30 p-1 rounded-full shrink-0">
               <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
             </div>
           )}
-          <span className={`text-sm font-medium ${type === 'error' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'}`}>
+          <span className={`text-sm font-medium truncate ${type === 'error' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'}`}>
             {message}
           </span>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body // Seedha body tag mein inject hoga
   );
 };
 
