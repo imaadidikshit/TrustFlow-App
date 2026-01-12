@@ -169,6 +169,7 @@ async def get_space_public_data(space_id: str):
             .select('id, is_liked, type, content, video_url, rating, respondent_name, respondent_photo_url, respondent_role, attached_photos, created_at') \
             .eq('space_id', space_id) \
             .eq('is_liked', True) \
+            .eq('type', 'text') \
             .order('created_at', desc=True) \
             .execute()
         
