@@ -1,20 +1,17 @@
 (function() {
     "use strict";
 
-    // --- 1. STATE MANAGEMENT ---
+    // --- 1. CONFIGURATION & STATE ---
     var config = null; 
-    var isWidgetRendered = false; 
+    // Note: 'isWidgetRendered' hata diya taaki SPA me wapas aane par widget reload ho sake.
 
-    // --- 2. SAFE EXECUTION ENGINE (FIX FOR NEXT.JS/REACT HYDRATION) ---
-    // Ye function decide karega ki kab start karna hai
+    // --- 2. SAFE EXECUTION ENGINE ---
     function autoStart() {
-        // Agar already start ho chuka hai to ruk jao
         if (window.TF_LOADED) return;
         
-        // Check: Kya page poori tarah load ho gaya hai?
+        // Wait for page load + extra delay for React Hydration
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
-            // Haan: To turant chalu karo (Next.js/React Hydrated)
-            setTimeout(initEngine, 2000);
+            setTimeout(initEngine, 1000);
         } else {
             window.addEventListener('load', function() {
                 setTimeout(initEngine, 2000);
@@ -22,17 +19,17 @@
         }
     }
 
-    // Ye main function hai jo sab kuch start karega
     function initEngine() {
         if (window.TF_LOADED) return;
         window.TF_LOADED = true;
 
-        injectStyles(); // CSS ab yahan inject hogi (Safe time par)
-        initTrustFlow(); // Main Logic
-        setInterval(initTrustFlow, 1000); // React Navigation Watcher
+        injectStyles(); 
+        initTrustFlow(); 
+        // Watcher: Har 1 second check karega (SPA Navigation & Empty Divs ke liye)
+        setInterval(initTrustFlow, 1000); 
     }
 
-    // --- 3. CSS STYLES (Moved inside function for safety) ---
+    // --- 3. CSS STYLES ---
     function injectStyles() {
         var styleId = 'tf-embed-css';
         if (!document.getElementById(styleId)) {
@@ -78,7 +75,7 @@
         }
     }
 
-    // --- 4. CONFIGURATION PARSER ---
+    // --- 4. CONFIG PARSER ---
     function getConfig() {
         if (config) return config;
         
@@ -115,48 +112,50 @@
         return config;
     }
 
-    // --- 5. CORE ENGINE ---
+    // --- 5. CORE ENGINE (SPA Fix & Vanilla Fallback) ---
     function initTrustFlow() {
         var cfg = getConfig();
         if (!cfg) return;
 
-        // Prevent double popups (inside iframe check)
-        if (window.self === window.top) {
-            if (!window.TF_POPUPS_INITIALIZED) {
-                window.TF_POPUPS_INITIALIZED = true;
-                fetchAndInitPopups(cfg.spaceId, cfg.baseUrl, cfg);
-            }
+        // A. Popups Init (Only Once Globally)
+        // Iframe check removed as per your request for easier testing
+        if (!window.TF_POPUPS_INITIALIZED) {
+            window.TF_POPUPS_INITIALIZED = true;
+            fetchAndInitPopups(cfg.spaceId, cfg.baseUrl, cfg);
         }
 
-        if (isWidgetRendered) return; 
-
-        // 1. Floating Widget
+        // B. Widget Injection Logic (Runs on Interval)
+        
+        // 1. Check Floating Widget
         if (cfg.placement === 'body') {
             if (!document.getElementById('tf-floating-launcher')) {
                 renderFloatingWidget(cfg.widgetUrl, cfg.theme);
-                isWidgetRendered = true;
             }
-            return;
+            // Floating widget persists, but check others too if needed
         }
 
-        // 2. Targeted DIV (Checks every second via setInterval)
+        // 2. Check Targeted DIV (Primary Method)
         var targetDiv = document.getElementById('trustflow-widget');
         if (targetDiv) {
+            // Fix #1: SPA Refresh - Check if div exists BUT is empty
             if (!targetDiv.hasChildNodes()) {
+                // console.log("TF: Found empty target div, rendering...");
                 renderInsideDiv(targetDiv, cfg.widgetUrl);
-                isWidgetRendered = true;
             }
-            return;
+            // Agar Target Div mil gaya, to Inline check mat karo.
+            return; 
         }
 
-        // 3. Inline Script Fallback
+        // 3. Inline Script Fallback (Fix #2: Vanilla HTML)
+        // Ye tabhi chalega jab Target Div nahi milega aur script Body mein hogi
         if (cfg.scriptElement.parentNode && cfg.scriptElement.parentNode.tagName !== 'HEAD') {
+            // Check: Kya script ke bagal mein widget already hai?
             if (cfg.scriptElement.nextElementSibling && cfg.scriptElement.nextElementSibling.classList.contains('trustflow-widget-container')) {
-                isWidgetRendered = true; 
-                return;
+                // Already rendered, do nothing
+            } else {
+                // console.log("TF: No Target Div, rendering Inline...");
+                renderInlineWidget(cfg.scriptElement, cfg.widgetUrl);
             }
-            renderInlineWidget(cfg.scriptElement, cfg.widgetUrl);
-            isWidgetRendered = true;
         }
     }
 
@@ -185,7 +184,7 @@
         return iframe;
     }
 
-    // --- POPUP LOGIC (Shuffle + VIP - UNTOUCHED) ---
+    // --- POPUP LOGIC ---
     var globalPopupQueue = [];
     var isLoopRunning = false;
     var lastNewestId = null;
@@ -202,8 +201,7 @@
     }
 
     function fetchAndInitPopups(spaceId, baseUrl, settings) {
-        // Keeping your Hardcoded Base URL as requested
-        var cleanBase = 'https://trust-flow-app.vercel.app'; 
+        var cleanBase = 'https://trust-flow-app.vercel.app'; // Kept hardcoded as requested
         var apiUrl = cleanBase + '/api/spaces/' + spaceId + '/public-data'; 
         
         var fetchData = function(isFirstLoad) {
@@ -233,17 +231,22 @@
 
         if (rawList.length > 0) {
             var newest = rawList[0];
-            // VIP Logic
             if (isFirstLoad === false && lastNewestId && newest.id !== lastNewestId) {
                 priorityItem = newest; 
                 globalPopupQueue.push(newest); 
             }
-            // Shuffle on First Load
             if (isFirstLoad) {
                 globalPopupQueue = shuffleArray(rawList);
             }
             lastNewestId = newest.id;
         }
+    }
+
+    // Helper: Fix #3 Check Visibility
+    function isWidgetVisibleOnPage() {
+        return document.getElementById('trustflow-widget') || 
+               document.getElementById('tf-floating-launcher') ||
+               document.querySelector('.trustflow-widget-container');
     }
 
     function runPopupLoop(apiSettings, scriptSettings) {
@@ -265,17 +268,23 @@
 
         function showNextPopup() {
             if (!document.body.contains(wrapper)) { isLoopRunning = false; return; }
+
+            // --- Fix #3: Visibility Check ---
+            // Agar widget is page par nahi hai, to popup skip karo aur thodi der baad check karo
+            if (!isWidgetVisibleOnPage()) {
+                return setTimeout(showNextPopup, 2000);
+            }
+            // --------------------------------
+
             if (globalPopupQueue.length === 0) { return setTimeout(showNextPopup, 5000); }
             if (isPaused) return setTimeout(showNextPopup, 1000);
 
             try {
                 var item;
-                // VIP Logic check
                 if (priorityItem) {
                     item = priorityItem;
                     priorityItem = null; 
                 } else {
-                    // Reshuffle if loop ends
                     if (currentIndex >= globalPopupQueue.length) {
                         globalPopupQueue = shuffleArray(globalPopupQueue);
                         currentIndex = 0;
@@ -323,57 +332,6 @@
             } catch (err) { setTimeout(showNextPopup, 5000); }
         }
         setTimeout(showNextPopup, (apiSettings.popupDelay || 2) * 1000);
-    }
-
-    function renderFloatingWidget(url, theme) {
-        var isDark = theme === 'dark';
-        var launcher = document.createElement('div');
-        launcher.id = 'tf-floating-launcher';
-        Object.assign(launcher.style, {
-            position: 'fixed', bottom: '20px', right: '20px', width: '60px', height: '60px',
-            borderRadius: '30px', backgroundColor: isDark ? '#1e293b' : '#ffffff',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', cursor: 'pointer', zIndex: '2147483647',
-            transition: 'transform 0.2s ease', border: isDark ? '1px solid #334155' : '1px solid #e2e8f0'
-        });
-        launcher.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
-        var overlay = document.createElement('div');
-        Object.assign(overlay.style, {
-            position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.5)', zIndex: '2147483647', display: 'none',
-            alignItems: 'center', justifyContent: 'center', opacity: '0',
-            transition: 'opacity 0.3s ease', backdropFilter: 'blur(4px)'
-        });
-        var modalContent = document.createElement('div');
-        Object.assign(modalContent.style, {
-            width: '90%', maxWidth: '1000px', maxHeight: '85vh',
-            backgroundColor: isDark ? '#0f172a' : '#ffffff', borderRadius: '16px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', overflow: 'hidden',
-            position: 'relative', display: 'flex', flexDirection: 'column'
-        });
-        var header = document.createElement('div');
-        Object.assign(header.style, { padding: '16px 24px', borderBottom: isDark ? '1px solid #1e293b' : '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' });
-        var title = document.createElement('h3');
-        title.innerText = "Wall of Love";
-        Object.assign(title.style, { margin: '0', fontFamily: 'sans-serif', fontWeight: '600', color: isDark ? '#f8fafc' : '#0f172a' });
-        var closeBtn = document.createElement('button');
-        closeBtn.innerHTML = '&times;';
-        Object.assign(closeBtn.style, { background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#64748b' });
-        var iframeContainer = document.createElement('div');
-        Object.assign(iframeContainer.style, { flex: '1', overflowY: 'auto', padding: '0', WebkitOverflowScrolling: 'touch' });
-        var iframe = createIframe(url);
-        iframe.style.minHeight = '400px'; 
-        iframe.style.height = '100%'; 
-        header.appendChild(title); header.appendChild(closeBtn);
-        iframeContainer.appendChild(iframe);
-        modalContent.appendChild(header); modalContent.appendChild(iframeContainer);
-        overlay.appendChild(modalContent);
-        document.body.appendChild(launcher);
-        document.body.appendChild(overlay);
-        launcher.onclick = function() { overlay.style.display = 'flex'; setTimeout(function() { overlay.style.opacity = '1'; }, 10); };
-        var closeAction = function() { overlay.style.opacity = '0'; setTimeout(function() { overlay.style.display = 'none'; }, 300); };
-        closeBtn.onclick = closeAction;
-        overlay.onclick = function(e) { if (e.target === overlay) closeAction(); };
     }
 
     // --- STARTUP LOGIC ---
