@@ -1,20 +1,34 @@
 (function() {
+    'use strict';
+    
+    // --- NAMESPACE ISOLATION ---
+    // Prevent conflicts with other scripts
+    window.__TrustFlow_v4__ = window.__TrustFlow_v4__ || {
+        initialized: false,
+        processedScripts: new Set(),
+        processedDivs: new Set(),
+        popupsInitialized: false,
+        retryAttempts: new Map()
+    };
+    
+    var TF = window.__TrustFlow_v4__;
+    
     // --- 1. INSTANT STYLE INJECTION (Fixes White Glitch before Iframe Loads) ---
     var styleId = 'tf-embed-css';
     if (!document.getElementById(styleId)) {
         var style = document.createElement('style');
         style.id = styleId;
-        // Force iframe to be transparent and prevent layout shift
+        // Force iframe to be transparent and prevent layout shift - All styles with !important for CSS isolation
         style.innerHTML = `
-            .trustflow-widget-container { width: 100%; position: relative; z-index: 1; min-height: 150px; display: block; }
-            .trustflow-widget-iframe { width: 100%; border: none; display: block; background: transparent !important; }
+            .tf-widget-container { width: 100% !important; position: relative !important; z-index: 1 !important; min-height: 150px !important; display: block !important; }
+            .tf-widget-iframe { width: 100% !important; border: none !important; display: block !important; background: transparent !important; }
         /* --- TRUSTFLOW POPUP STYLES --- */
             .tf-popup-wrapper {
                 position: fixed !important;
                 z-index: 2147483647 !important;
                 max-width: 320px !important;
                 width: auto !important;
-                font-family: 'Inter', sans-serif !important;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
                 pointer-events: none !important;
                 display: flex !important;
                 flex-direction: column !important;
@@ -42,30 +56,28 @@
                 opacity: 0 !important;
                 transform: translateY(20px) scale(0.95) !important;
                 transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
-                color: #1e293b !important; /* Default Text Color */
+                color: #1e293b !important;
             }
             
             /* DARK THEME SUPPORT */
             .tf-popup-card.tf-dark {
-                background: rgba(15, 23, 42, 0.95) !important; /* Slate 900 */
+                background: rgba(15, 23, 42, 0.95) !important;
                 border: 1px solid rgba(255, 255, 255, 0.1) !important;
-                color: #f8fafc !important; /* Light Text */
+                color: #f8fafc !important;
             }
             .tf-popup-card.tf-dark strong { color: #f8fafc !important; }
-            .tf-popup-card.tf-dark p { color: #cbd5e1 !important; } /* Muted Text */
+            .tf-popup-card.tf-dark p { color: #cbd5e1 !important; }
 
             .tf-popup-card.tf-active {
                 opacity: 1 !important;
                 transform: translateY(0) scale(1) !important;
             }
 
-            /* MOBILE FIX: Corner Only */
+            /* MOBILE FIX */
             @media (max-width: 768px) {
                 .tf-popup-wrapper {
                    max-width: 280px !important;
-                   max-width: 100% !important; /* <--- YE GALAT HAI */
                    bottom: 15px !important;
-                    /* User ki position setting (left/right) respect karega */
                 }
                 .tf-popup-card { width: auto !important; }
             }
@@ -73,89 +85,189 @@
         document.head.appendChild(style);
     }
   
+    // --- MULTI-METHOD DETECTION & INITIALIZATION ---
     function initTrustFlow() {
-      // Search for scripts that haven't been processed yet
-      // We do NOT use a global flag here because in SPAs (Next.js), the global flag persists but the DOM changes.
-      var scripts = document.querySelectorAll('script[data-space-id]');
-      
-      scripts.forEach(function(script) {
-          // Safety Check: If we already injected the container next to this script, stop.
-          if (script.nextElementSibling && script.nextElementSibling.classList.contains('trustflow-widget-container')) {
-              return;
-          }
-          // If we are in "body" mode (floating), check if the launcher exists
-          if (script.getAttribute('data-placement') === 'body' && document.getElementById('tf-floating-launcher')) {
-              return;
-          }
-  
-          var spaceId = script.getAttribute('data-space-id');
-          var placement = script.getAttribute('data-placement') || 'section'; 
-          
-          // --- YOUR ORIGINAL ATTRIBUTE PARSING (PRESERVED) ---
-          var theme = script.getAttribute('data-theme') || 'light';
-          var layout = script.getAttribute('data-layout') || 'grid';
-          var cardTheme = script.getAttribute('data-card-theme');
-          var corners = script.getAttribute('data-corners');
-          var shadow = script.getAttribute('data-shadow');
-          var border = script.getAttribute('data-border');
-          var hoverEffect = script.getAttribute('data-hover-effect');
-          var nameSize = script.getAttribute('data-name-size');
-          var testimonialStyle = script.getAttribute('data-testimonial-style');
-          var animation = script.getAttribute('data-animation');
-          var speed = script.getAttribute('data-animation-speed');
-  
-          // Construct Base Widget URL
-          // Using dynamic detection for baseUrl to work in any env (localhost or prod)
-          var src = script.src || '';
-          var baseUrl = src.indexOf('/embed.js') > -1 ? src.replace('/embed.js', '') : 'https://trustflow-nu.vercel.app'; 
-          
-          var params = new URLSearchParams();
-          params.append('theme', theme);
-          params.append('layout', layout);
-          if (cardTheme) params.append('card-theme', cardTheme);
-          if (corners) params.append('corners', corners);
-          if (shadow) params.append('shadow', shadow);
-          if (border) params.append('border', border);
-          if (hoverEffect) params.append('hover-effect', hoverEffect);
-          if (nameSize) params.append('name-size', nameSize);
-          if (testimonialStyle) params.append('testimonial-style', testimonialStyle);
-          if (animation) params.append('animation', animation);
-          if (speed) params.append('speed', speed);
-  
-          var widgetUrl = baseUrl + '/widget/' + spaceId + '?' + params.toString();
-          if (!window.TF_POPUPS_INITIALIZED) {
-            window.TF_POPUPS_INITIALIZED = true;
+        try {
+            // Method 1: Process script tags with data-space-id
+            processScriptTags();
+            
+            // Method 2: Process div elements with data-trustflow-space-id (React JSX fallback)
+            processDivTags();
+        } catch (err) {
+            // Silent failure - don't break client sites
+            if (console && console.warn) {
+                console.warn('TrustFlow: Initialization error', err);
+            }
+        }
+    }
+    
+    function processScriptTags() {
+        // Find all script tags with data-space-id
+        var scripts = document.querySelectorAll('script[data-space-id]:not([data-tf-done])');
+        
+        scripts.forEach(function(script) {
+            try {
+                var scriptId = script.src + script.getAttribute('data-space-id');
+                
+                // Check if already processed using namespace tracking
+                if (TF.processedScripts.has(scriptId)) {
+                    return;
+                }
+                
+                // Mark as processing
+                script.setAttribute('data-tf-done', 'true');
+                TF.processedScripts.add(scriptId);
+                
+                // Safety Check: If we already injected the container next to this script, stop
+                if (script.nextElementSibling && script.nextElementSibling.classList.contains('tf-widget-container')) {
+                    return;
+                }
+                
+                var placement = script.getAttribute('data-placement') || 'section';
+                
+                // If we are in "body" mode (floating), check if the launcher exists
+                if (placement === 'body' && document.getElementById('tf-floating-launcher')) {
+                    return;
+                }
+                
+                var config = extractConfig(script);
+                initWidget(config, script, null);
+            } catch (err) {
+                if (console && console.warn) {
+                    console.warn('TrustFlow: Script processing error', err);
+                }
+            }
+        });
+    }
+    
+    function processDivTags() {
+        // Find all div elements with data-trustflow-space-id (React JSX support)
+        var divs = document.querySelectorAll('[data-trustflow-space-id]:not([data-tf-done])');
+        
+        divs.forEach(function(div) {
+            try {
+                var divId = div.getAttribute('data-trustflow-space-id');
+                
+                // Check if already processed
+                if (TF.processedDivs.has(divId)) {
+                    return;
+                }
+                
+                // Mark as processing
+                div.setAttribute('data-tf-done', 'true');
+                TF.processedDivs.add(divId);
+                
+                // Check if already has iframe
+                if (div.querySelector('.tf-widget-iframe')) {
+                    return;
+                }
+                
+                var config = extractConfig(div);
+                config.spaceId = divId; // Override with div's space id
+                initWidget(config, null, div);
+            } catch (err) {
+                if (console && console.warn) {
+                    console.warn('TrustFlow: Div processing error', err);
+                }
+            }
+        });
+    }
+    
+    function extractConfig(element) {
+        // Extract configuration from data attributes
+        return {
+            spaceId: element.getAttribute('data-space-id') || element.getAttribute('data-trustflow-space-id'),
+            placement: element.getAttribute('data-placement') || 'section',
+            theme: element.getAttribute('data-theme') || 'light',
+            layout: element.getAttribute('data-layout') || 'grid',
+            cardTheme: element.getAttribute('data-card-theme'),
+            corners: element.getAttribute('data-corners'),
+            shadow: element.getAttribute('data-shadow'),
+            border: element.getAttribute('data-border'),
+            hoverEffect: element.getAttribute('data-hover-effect'),
+            nameSize: element.getAttribute('data-name-size'),
+            testimonialStyle: element.getAttribute('data-testimonial-style'),
+            animation: element.getAttribute('data-animation'),
+            speed: element.getAttribute('data-animation-speed'),
+            src: element.src || ''
+        };
+    }
+    
+    function initWidget(config, scriptNode, divNode) {
+        var spaceId = config.spaceId;
+        if (!spaceId) return;
+        
+        // Construct Base Widget URL
+        // Using dynamic detection for baseUrl to work in any env (localhost or prod)
+        var baseUrl = config.src.indexOf('/embed.js') > -1 
+            ? config.src.replace('/embed.js', '') 
+            : 'https://trustflow-nu.vercel.app';
+        
+        var params = new URLSearchParams();
+        params.append('theme', config.theme);
+        params.append('layout', config.layout);
+        if (config.cardTheme) params.append('card-theme', config.cardTheme);
+        if (config.corners) params.append('corners', config.corners);
+        if (config.shadow) params.append('shadow', config.shadow);
+        if (config.border) params.append('border', config.border);
+        if (config.hoverEffect) params.append('hover-effect', config.hoverEffect);
+        if (config.nameSize) params.append('name-size', config.nameSize);
+        if (config.testimonialStyle) params.append('testimonial-style', config.testimonialStyle);
+        if (config.animation) params.append('animation', config.animation);
+        if (config.speed) params.append('speed', config.speed);
+        
+        var widgetUrl = baseUrl + '/widget/' + spaceId + '?' + params.toString();
+        
+        // Initialize popups only once
+        if (!TF.popupsInitialized) {
+            TF.popupsInitialized = true;
             fetchAndInitPopups(spaceId, baseUrl);
-          }
-  
-          if (placement === 'body') {
-              renderFloatingWidget(widgetUrl, theme);
-          } else {
-              renderInlineWidget(script, widgetUrl);
-          }
-      });
+        }
+        
+        if (config.placement === 'body') {
+            renderFloatingWidget(widgetUrl, config.theme);
+        } else {
+            renderInlineWidget(scriptNode || divNode, widgetUrl);
+        }
     }
   
     // --- RENDERING FUNCTIONS ---
   
-    function renderInlineWidget(scriptNode, url) {
+    function renderInlineWidget(node, url) {
         var container = document.createElement('div');
-        container.className = 'trustflow-widget-container';
-        // Styles are handled by the injected CSS class above for cleaner DOM
+        container.className = 'tf-widget-container';
         
-        if (scriptNode.parentNode) {
-            scriptNode.parentNode.insertBefore(container, scriptNode.nextSibling);
+        if (node.parentNode) {
+            // For script tags, insert after; for divs, insert inside
+            if (node.tagName === 'SCRIPT') {
+                node.parentNode.insertBefore(container, node.nextSibling);
+            } else {
+                // For div tags, append inside
+                node.appendChild(container);
+            }
         }
   
         var iframe = createIframe(url);
         container.appendChild(iframe);
   
         // Smart Resize Listener
-        window.addEventListener('message', function(event) {
-            if (event.data.type === 'trustflow-resize') {
-                iframe.style.height = event.data.height + 'px';
-            }
-        });
+        if (!TF.messageListenerAdded) {
+            TF.messageListenerAdded = true;
+            window.addEventListener('message', function(event) {
+                try {
+                    if (event.data.type === 'trustflow-resize') {
+                        var iframes = document.querySelectorAll('.tf-widget-iframe');
+                        iframes.forEach(function(ifr) {
+                            if (ifr.contentWindow === event.source) {
+                                ifr.style.height = event.data.height + 'px';
+                            }
+                        });
+                    }
+                } catch (err) {
+                    // Silent failure
+                }
+            });
+        }
     }
   
     function renderFloatingWidget(url, theme) {
@@ -227,29 +339,34 @@
     function createIframe(url) {
         var iframe = document.createElement('iframe');
         iframe.src = url;
-        iframe.className = 'trustflow-widget-iframe'; // Uses the transparent CSS class
+        iframe.className = 'tf-widget-iframe';
         iframe.allowTransparency = "true";
+        iframe.style.border = 'none';
+        iframe.style.width = '100%';
+        iframe.style.display = 'block';
+        iframe.style.background = 'transparent';
         return iframe;
     }
-    // --- TRUSTFLOW POPUP ENGINE (Safe & Isolated) ---
- // --- TRUSTFLOW POPUP ENGINE (With Live Updates & VIP Priority) ---
+    // --- TRUSTFLOW POPUP ENGINE (With Live Updates & VIP Priority) ---
     
-    // 1. GLOBAL VARIABLES (Ye sabse upar hona zaroori hai)
+    // Global Variables for popup management
     var globalPopupQueue = [];
     var isLoopRunning = false;
-    var lastNewestId = null;  // Track latest ID
-    var priorityItem = null;  // VIP Item store karne ke liye
+    var lastNewestId = null;
+    var priorityItem = null;
 
     function fetchAndInitPopups(spaceId, baseUrl) {
         var apiUrl = baseUrl + '/api/spaces/' + spaceId + '/public-data'; 
 
-        // Function jo data layega (isFirstLoad parameter ke saath)
+        // Function to fetch data with first-load flag
         var fetchData = function(isFirstLoad) {
             fetch(apiUrl)
-                .then(function(res) { return res.json(); })
+                .then(function(res) { 
+                    if (!res.ok) throw new Error('Network response not ok');
+                    return res.json(); 
+                })
                 .then(function(data) {
                     if (data && data.widget_settings && data.widget_settings.popupsEnabled) {
-                        // Yahan hum isFirstLoad pass kar rahe hain
                         updateQueue(data.testimonials, isFirstLoad);
                         
                         if (!isLoopRunning) {
@@ -258,24 +375,27 @@
                     }
                 })
                 .catch(function(err) {
-                    console.warn('TF Popups: Background update failed', err);
+                    // Silent failure - don't break client sites
+                    if (console && console.warn) {
+                        console.warn('TrustFlow: Popup fetch failed', err);
+                    }
                 });
         };
 
-        // 2. Initial Run (True pass kiya, matlab pehli baar)
+        // Initial Run (first load = true)
         fetchData(true);
 
-        // 3. Live Update (Polling) - Har 30 Seconds me check karega (False pass kiya)
+        // Live Update (Polling) - Every 30 seconds (FIXED from 100ms)
         setInterval(function() {
             fetchData(false);
-        }, 100); 
+        }, 30000); // 30 seconds = 30000ms
     }
 
-    // Helper: Naye data ko existing queue me merge karna
+    // Helper: Merge new data into existing queue
     function updateQueue(newTestimonials, isFirstLoad) {
         if (!newTestimonials) return;
         
-        // Sirf Liked Wale aur Sort kiye hue
+        // Only liked testimonials, sorted by creation date
         var freshList = newTestimonials
             .filter(function(t) { return t.is_liked; })
             .sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
@@ -283,17 +403,16 @@
         if (freshList.length > 0) {
             var newest = freshList[0];
             
-            // VIP LOGIC: Agar ye pehli load nahi hai, aur ID nayi hai -> Priority Set karo
+            // VIP LOGIC: If not first load and ID is new -> Set Priority
             if (isFirstLoad === false && lastNewestId && newest.id !== lastNewestId) {
-                console.log("🔥 New Testimonial Detected! VIP Mode On.");
                 priorityItem = newest; 
             }
             
-            // Latest ID update karo
+            // Update latest ID
             lastNewestId = newest.id;
         }
 
-        // Queue Update
+        // Update Queue
         globalPopupQueue = freshList; 
     }
 
@@ -327,32 +446,31 @@
             try {
                 var item;
 
-                // --- 👑 VIP LOGIC (Loop Todne Wala Hisa) ---
+                // VIP LOGIC: Priority item interrupts normal loop
                 if (priorityItem) {
                     item = priorityItem;
-                    priorityItem = null; // VIP dikha diya, ab clear karo
-                    currentIndex = 0;    // Index reset taki flow bana rahe
+                    priorityItem = null;
+                    currentIndex = 0;
                 } else {
                     // Normal Loop
                     currentIndex = currentIndex % globalPopupQueue.length;
                     item = globalPopupQueue[currentIndex];
                 }
 
-                // --- 1. SETUP IMAGES (Only for Popups) ---
-                // Ye fallback image code ke andar hi hai (SVG), internet na ho tab bhi chalegi
+                // Fallback image (base64 SVG - works offline)
                 var safeFallback = "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cbd5e1'%3E%3Cpath d='M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z' /%3E%3C/svg%3E";
 
-                // Asli photo try karo, nahi to UI Avatar, nahi to SafeFallback
+                // Try photo, fallback to UI Avatar, then safeFallback
                 var avatarUrl = item.respondent_photo_url;
                 if (!avatarUrl) {
-                    avatarUrl = 'https://ui-avatars.com/api/?background=random&color=fff&name=' + encodeURIComponent(item.respondent_name);
+                    avatarUrl = 'https://ui-avatars.com/api/?background=random&color=fff&name=' + encodeURIComponent(item.respondent_name || 'User');
                 }
 
                 var card = document.createElement('div');
                 var isDark = settings.cardTheme === 'dark'; 
                 card.className = 'tf-popup-card' + (isDark ? ' tf-dark' : ''); 
                 
-                // --- 2. HTML GENERATION (Only for Popups) ---
+                // Card HTML
                 card.innerHTML = `
                     <div style="position:relative; flex-shrink:0;">
                         <img src="${avatarUrl}" 
@@ -363,7 +481,7 @@
                     </div>
                     <div style="display:flex; flex-direction:column; min-width:0;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                            <strong style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">${item.respondent_name}</strong>
+                            <strong style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;">${item.respondent_name || 'Anonymous'}</strong>
                             <div style="display:flex; color:#fbbf24; font-size:12px;">${'★'.repeat(item.rating || 5)}</div>
                         </div>
                         <p style="font-size:12px; margin:0; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; line-height:1.3;">${item.content || ''}</p>
@@ -380,16 +498,20 @@
                 wrapper.appendChild(card);
 
                 // Animation IN
-                requestAnimationFrame(function() { setTimeout(function() { card.classList.add('tf-active'); }, 50); });
+                requestAnimationFrame(function() { 
+                    setTimeout(function() { 
+                        card.classList.add('tf-active'); 
+                    }, 50); 
+                });
 
                 // Schedule NEXT
                 var duration = (settings.popupDuration || 5) * 1000;
                 var gap = (settings.popupGap || 10) * 1000;
 
                 setTimeout(function() {
-                    if (card) card.classList.remove('tf-active'); // Animation OUT
+                    if (card) card.classList.remove('tf-active');
                     setTimeout(function() {
-                        // Agar VIP nahi tha tabhi index badhao
+                        // Only increment if not VIP
                         if (!priorityItem) {
                             currentIndex++;
                         }
@@ -398,7 +520,10 @@
                 }, duration);
 
             } catch (err) {
-                console.warn('TF Popup recovered', err);
+                // Silent recovery
+                if (console && console.warn) {
+                    console.warn('TrustFlow: Popup display error', err);
+                }
                 setTimeout(showNextPopup, 5000);
             }
         }
@@ -408,16 +533,85 @@
   
     // --- AUTO-INITIALIZATION & SELF-HEALING ---
     
-    // 1. Run immediately (Standard HTML)
-    initTrustFlow();
-  
-    // 2. Watch for DOM changes (React/Next.js/SPAs)
-    // This is the "Magic" that makes it work everywhere. If React re-renders and adds the script again, we catch it.
-    var observer = new MutationObserver(function(mutations) {
-        initTrustFlow();
-    });
+    // Debounced initialization to prevent excessive calls
+    var initTimer = null;
+    var initDebounceMs = 300;
     
-    if (document.body) {
-        observer.observe(document.body, { childList: true, subtree: true });
+    function debouncedInit() {
+        if (initTimer) {
+            clearTimeout(initTimer);
+        }
+        initTimer = setTimeout(function() {
+            initTrustFlow();
+        }, initDebounceMs);
     }
+    
+    // Smart initialization with proper timing
+    function smartInit() {
+        // Method 1: Use document.currentScript if available (immediate execution)
+        if (document.currentScript && document.currentScript.getAttribute('data-space-id')) {
+            initTrustFlow();
+        }
+        
+        // Method 2: Wait for DOM if still loading
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                // Use requestIdleCallback for React hydration if available, otherwise setTimeout
+                if (window.requestIdleCallback) {
+                    window.requestIdleCallback(function() {
+                        initTrustFlow();
+                    });
+                } else {
+                    setTimeout(initTrustFlow, 100);
+                }
+            });
+        } else {
+            // DOM already loaded - use requestIdleCallback for React hydration
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(function() {
+                    initTrustFlow();
+                });
+            } else {
+                setTimeout(initTrustFlow, 100);
+            }
+        }
+        
+        // Method 3: Watch for DOM changes (React/Next.js/SPAs) with debouncing
+        // This is the "Magic" that makes it work everywhere
+        if (typeof MutationObserver !== 'undefined' && document.body) {
+            var observer = new MutationObserver(function(mutations) {
+                debouncedInit();
+            });
+            
+            observer.observe(document.body, { 
+                childList: true, 
+                subtree: true 
+            });
+        }
+    }
+    
+    // Execute smart initialization
+    smartInit();
+    
+    // Retry mechanism for React components that haven't mounted yet
+    var maxRetries = 5;
+    var retryDelay = 500;
+    var retryCount = 0;
+    
+    function retryInit() {
+        if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(function() {
+                var hasPendingElements = document.querySelectorAll('script[data-space-id]:not([data-tf-done])').length > 0 ||
+                                        document.querySelectorAll('[data-trustflow-space-id]:not([data-tf-done])').length > 0;
+                if (hasPendingElements) {
+                    initTrustFlow();
+                    retryInit(); // Continue retrying
+                }
+            }, retryDelay * retryCount);
+        }
+    }
+    
+    // Start retry mechanism after initial delay
+    setTimeout(retryInit, 1000);
 })();
