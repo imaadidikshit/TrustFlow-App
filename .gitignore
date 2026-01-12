@@ -14,3 +14,6 @@ __pycache__/
 
 # System files
 .DS_Store
+
+# Test files (local testing only)
+test-*.html
