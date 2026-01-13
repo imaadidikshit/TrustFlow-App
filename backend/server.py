@@ -282,7 +282,8 @@ async def resolve_custom_domain(domain: str):
     
     except Exception as e:
         logger.error(f"Error resolving custom domain: {e}")
-        return {"status": "error", "message": "Failed to resolve domain", "space": None}
+        # ⚠️ ERROR KO RETURN KAR RAHE HAIN TAAKI BROWSER MEIN DIKHE
+        return {"status": "error", "message": f"REAL ERROR: {str(e)}", "space": None}
 
 
 @api_router.post("/custom-domains")
