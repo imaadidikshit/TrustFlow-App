@@ -32,7 +32,7 @@ import {
   Legend
 } from 'recharts';
 
-const API_BASE = /*process.env.REACT_APP_API_URL ||*/ 'https://jubilant-fishstick-qvprpw7g5592pwx-8000.app.github.dev/';
+const API_BASE = process.env.REACT_APP_BACKEND_URL || 'https://trust-flow-app.vercel.app';
 
 // --- KPI Card Component ---
 const KPICard = ({ title, value, icon: Icon, color, loading, subtitle }) => {

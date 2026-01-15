@@ -201,7 +201,7 @@
     }
 
     function fetchAndInitPopups(spaceId, baseUrl, settings) {
-        var cleanBase = 'https://jubilant-fishstick-qvprpw7g5592pwx-8000.app.github.dev'; // Kept hardcoded as requested
+        var cleanBase = 'https://trust-flow-app.vercel.app'; // Kept hardcoded as requested
         var apiUrl = cleanBase + '/api/spaces/' + spaceId + '/public-data'; 
         
         var fetchData = function(isFirstLoad) {
