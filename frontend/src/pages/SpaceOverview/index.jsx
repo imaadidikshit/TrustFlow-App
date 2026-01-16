@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { 
-  ArrowLeft, Copy, ExternalLink, Inbox, Edit, Code, Settings, Loader2, Share2, BarChart3 
+  ArrowLeft, Copy, ExternalLink, Inbox, Edit, Code, Settings, Loader2, Share2, BarChart3,
+  Sparkles, Film, LayoutGrid
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
@@ -20,6 +21,8 @@ import ShareTab from './components/ShareTab';
 import WidgetTab from './components/WidgetTab';
 import SettingsTab from './components/SettingsTab';
 import CTADashboardTab from './components/CTADashboardTab';
+import GalleryTab from './components/GalleryTab';
+import VideoStudioTab from './components/VideoStudioTab';
 
 const SpaceOverview = () => {
   const { spaceId } = useParams();
@@ -328,6 +331,13 @@ const SpaceOverview = () => {
                 <Edit className="w-4 h-4" />
                 Edit Form
               </TabsTrigger>
+
+              {/* NEW: Gallery Tab - Before Widget */}
+              <TabsTrigger value="gallery" className="flex items-center gap-2 flex-shrink-0">
+                <Sparkles className="w-4 h-4" />
+                Gallery
+                <Badge variant="secondary" className="ml-1 bg-amber-100 text-amber-700 text-[10px]">NEW</Badge>
+              </TabsTrigger>
               
               <TabsTrigger value="widget" className="flex items-center gap-2 flex-shrink-0">
                 <Code className="w-4 h-4" />
@@ -337,6 +347,13 @@ const SpaceOverview = () => {
               <TabsTrigger value="share" className="flex items-center gap-2 flex-shrink-0">
                 <Share2 className="w-4 h-4" />
                 Share & QR
+              </TabsTrigger>
+
+              {/* NEW: Video Studio Tab - Before Settings */}
+              <TabsTrigger value="studio" className="flex items-center gap-2 flex-shrink-0">
+                <Film className="w-4 h-4" />
+                Studio
+                <Badge variant="secondary" className="ml-1 bg-violet-100 text-violet-700 text-[10px]">PRO</Badge>
               </TabsTrigger>
               
               <TabsTrigger value="settings" className="flex items-center gap-2 flex-shrink-0">
@@ -366,6 +383,17 @@ const SpaceOverview = () => {
               />
             </TabsContent>
 
+            {/* NEW: Gallery Tab Content */}
+            <TabsContent value="gallery" className="mt-0">
+              <GalleryTab 
+                spaceId={spaceId}
+                widgetSettings={widgetSettings}
+                setWidgetSettings={setWidgetSettings}
+                saveWidgetSettings={saveWidgetSettings}
+                setActiveTab={setActiveTab}
+              />
+            </TabsContent>
+
             <TabsContent value="share" className="mt-0">
               <ShareTab space={space} />
             </TabsContent>
@@ -378,6 +406,24 @@ const SpaceOverview = () => {
                 widgetSettings={widgetSettings}
                 setWidgetSettings={setWidgetSettings}
                 saveWidgetSettings={saveWidgetSettings}
+              />
+            </TabsContent>
+
+            {/* NEW: Video Studio Tab Content */}
+            <TabsContent value="studio" className="mt-0">
+              <VideoStudioTab 
+                testimonials={testimonials}
+                spaceId={spaceId}
+                onVideoUpdated={(testimonialId, newUrl) => {
+                  // Update local testimonials state with new video URL
+                  setTestimonials(prev => 
+                    prev.map(t => 
+                      t.id === testimonialId 
+                        ? { ...t, video_url: `${newUrl}?t=${Date.now()}` }
+                        : t
+                    )
+                  );
+                }}
               />
             </TabsContent>
 

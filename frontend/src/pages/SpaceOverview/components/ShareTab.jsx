@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Share2, QrCode, Copy, CheckCircle, AlertCircle, Settings } from 'lucide-react';
+import { Download, Share2, QrCode, Copy, CheckCircle, AlertCircle, Settings, ExternalLink, Heart, Globe } from 'lucide-react';
 
 // --- SHARED COMPONENT: PREMIUM NOTIFICATION TOAST ---
 const NotificationToast = ({ message, type, isVisible }) => {
@@ -254,6 +255,47 @@ const ShareTab = ({ space }) => {
               </Button>
               <Button variant="outline" className="w-full" onClick={() => handleDownload('svg')}>
                 <Download className="w-4 h-4 mr-2" /> Download SVG (Vector)
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* NEW: Public Wall of Love Link Card */}
+          <Card className="border-violet-200 dark:border-violet-900 bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/30 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Heart className="w-5 h-5 text-violet-600 fill-violet-200" />
+                Public Wall of Love
+                <Badge variant="secondary" className="bg-violet-100 text-violet-700 text-[10px]">NEW</Badge>
+              </CardTitle>
+              <CardDescription className="text-sm">
+                Share a beautiful standalone page showcasing your testimonials
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2 bg-white dark:bg-gray-900 p-2 pl-3 rounded-lg border border-violet-200 dark:border-violet-800">
+                <Globe className="w-4 h-4 text-violet-500 shrink-0" />
+                <span className="text-xs text-muted-foreground truncate flex-1">
+                  {`${window.location.origin}/wall/${space?.slug}`}
+                </span>
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="h-7 w-7 p-0 shrink-0" 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/wall/${space?.slug}`);
+                    showToast('Wall of Love link copied!', 'success');
+                  }}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+              <Button 
+                variant="outline" 
+                className="w-full border-violet-200 hover:bg-violet-50 dark:border-violet-800 dark:hover:bg-violet-950/50"
+                onClick={() => window.open(`/wall/${space?.slug}`, '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Wall of Love
               </Button>
             </CardContent>
           </Card>

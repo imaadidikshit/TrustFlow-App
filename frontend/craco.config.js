@@ -83,6 +83,53 @@ webpackConfig.devServer = (devServerConfig) => {
     devServerConfig = setupDevServer(devServerConfig);
   }
 
+  // Add CORS headers for FFmpeg WASM (Video Studio)
+  // 'credentialless' allows loading external media (Supabase videos/images)
+  // while still enabling SharedArrayBuffer for FFmpeg WASM
+  devServerConfig.headers = {
+    ...devServerConfig.headers,
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Embedder-Policy': 'credentialless',
+    // Ensure WASM files are served with correct MIME type
+    'X-Content-Type-Options': 'nosniff',
+  };
+
+  // Custom middleware to set correct MIME types for FFmpeg files
+  const originalSetupMiddlewares = devServerConfig.setupMiddlewares;
+  const ffmpegMiddleware = (middlewares, devServer) => {
+    // Add middleware before others to handle WASM/JS files in /ffmpeg/
+    devServer.app.use((req, res, next) => {
+      // Set correct MIME types for FFmpeg assets
+      if (req.url.includes('/ffmpeg/')) {
+        if (req.url.endsWith('.wasm')) {
+          res.setHeader('Content-Type', 'application/wasm');
+        } else if (req.url.endsWith('.js')) {
+          res.setHeader('Content-Type', 'text/javascript');
+        }
+        // Allow CORS for these files
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      }
+      next();
+    });
+
+    return middlewares;
+  };
+
+  // Chain the middlewares
+  const existingSetupMiddlewares = devServerConfig.setupMiddlewares;
+  devServerConfig.setupMiddlewares = (middlewares, devServer) => {
+    // Apply FFmpeg middleware first
+    middlewares = ffmpegMiddleware(middlewares, devServer);
+    
+    // Then apply existing middlewares if any
+    if (existingSetupMiddlewares) {
+      middlewares = existingSetupMiddlewares(middlewares, devServer);
+    }
+    
+    return middlewares;
+  };
+
   // Add health check endpoints if enabled
   if (config.enableHealthCheck && setupHealthEndpoints && healthPluginInstance) {
     const originalSetupMiddlewares = devServerConfig.setupMiddlewares;

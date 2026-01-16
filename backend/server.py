@@ -817,6 +817,467 @@ async def get_pending_domains(admin_key: str = None):
         raise HTTPException(status_code=500, detail="Failed to fetch pending domains")
 
 
+# --- WEBHOOK TEST ENDPOINT ---
+
+class WebhookTestRequest(BaseModel):
+    webhook_url: str
+    payload: Dict[str, Any]
+
+
+# --- SMART WEBHOOK PAYLOAD FORMATTERS ---
+
+def detect_webhook_platform(url: str) -> str:
+    """Detect the platform from webhook URL"""
+    if not url:
+        return 'generic'
+    lower_url = url.lower()
+    if 'hooks.slack.com' in lower_url:
+        return 'slack'
+    if 'discord.com/api/webhooks' in lower_url or 'discordapp.com/api/webhooks' in lower_url:
+        return 'discord'
+    return 'generic'
+
+
+def generate_star_rating(rating: Optional[int]) -> str:
+    """Generate star rating string"""
+    if not rating or rating < 1:
+        return '☆☆☆☆☆'
+    full_stars = min(int(rating), 5)
+    return '⭐' * full_stars + '☆' * (5 - full_stars)
+
+
+def format_slack_payload(payload: Dict[str, Any], is_test: bool = False) -> Dict[str, Any]:
+    """Format payload for Slack using Block Kit"""
+    data = payload.get('data', {})
+    stars = generate_star_rating(data.get('rating'))
+    content = data.get('content', 'No content provided')
+    content_preview = content[:200] + ('...' if len(content) > 200 else '')
+    name = data.get('respondent_name', 'Anonymous')
+    
+    header_text = "🧪 TrustFlow Test Ping!" if is_test else "🎉 New Testimonial Received!"
+    
+    slack_payload = {
+        "text": f"{header_text}\nFrom: {name}\nRating: {stars}\n\"{content_preview}\"",
+        "blocks": [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": header_text,
+                    "emoji": True
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*From:*\n{name}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Rating:*\n{stars}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*{'Test Message' if is_test else 'Testimonial'}:*\n> _\"{content_preview}\"_"
+                }
+            }
+        ]
+    }
+    
+    if is_test:
+        slack_payload["blocks"].append({
+            "type": "context",
+            "elements": [
+                {
+                    "type": "mrkdwn",
+                    "text": "✅ *Connection verified!* Your TrustFlow webhook is working perfectly."
+                }
+            ]
+        })
+    
+    return slack_payload
+
+
+def format_discord_payload(payload: Dict[str, Any], is_test: bool = False) -> Dict[str, Any]:
+    """Format payload for Discord using Embeds"""
+    data = payload.get('data', {})
+    stars = generate_star_rating(data.get('rating'))
+    content = data.get('content', 'No content provided')
+    content_preview = content[:300] + ('...' if len(content) > 300 else '')
+    name = data.get('respondent_name', 'Anonymous')
+    email = data.get('respondent_email', 'Not provided')
+    
+    title = "🧪 TrustFlow Test Ping!" if is_test else f"Testimonial from {name}"
+    color = 0x10B981 if is_test else 0x8B5CF6  # Green for test, Violet for real
+    
+    return {
+        "content": "✅ **Connection Test Successful!**" if is_test else "🎉 **New Testimonial Received!**",
+        "embeds": [{
+            "title": title,
+            "description": f"> _\"{content_preview}\"_",
+            "color": color,
+            "fields": [
+                {"name": "⭐ Rating", "value": stars, "inline": True},
+                {"name": "📝 Type", "value": data.get('type', 'text'), "inline": True},
+                {"name": "📧 Email", "value": email, "inline": True}
+            ],
+            "footer": {"text": "TrustFlow Webhook" + (" - Test Mode" if is_test else "")},
+            "timestamp": data.get('created_at', datetime.now(timezone.utc).isoformat())
+        }]
+    }
+
+
+def format_smart_payload(url: str, payload: Dict[str, Any], is_test: bool = False) -> Dict[str, Any]:
+    """Automatically detect platform and format payload accordingly"""
+    platform = detect_webhook_platform(url)
+    
+    if platform == 'slack':
+        return format_slack_payload(payload, is_test)
+    elif platform == 'discord':
+        return format_discord_payload(payload, is_test)
+    else:
+        # Generic - return original payload
+        return payload
+
+@api_router.post("/webhooks/test")
+async def test_webhook(request: WebhookTestRequest):
+    """
+    Test a webhook URL by sending a test payload.
+    This acts as a proxy to avoid CORS issues when testing from the frontend.
+    """
+    import httpx
+    
+    # Security: Validate the webhook URL
+    url = request.webhook_url.strip()
+    
+    # Must be HTTPS
+    if not url.startswith('https://'):
+        return {
+            "success": False,
+            "error": "Only HTTPS URLs are allowed",
+            "status_code": None
+        }
+    
+    # Block localhost and private IPs
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        hostname = parsed.hostname.lower() if parsed.hostname else ''
+        
+        # Block localhost variations
+        blocked_hosts = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]']
+        if hostname in blocked_hosts or hostname.startswith('localhost'):
+            return {
+                "success": False,
+                "error": "Localhost URLs are not allowed",
+                "status_code": None
+            }
+        
+        # Block private IP ranges (basic check)
+        import re
+        private_ip_patterns = [
+            r'^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$',          # 10.x.x.x
+            r'^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$',  # 172.16-31.x.x
+            r'^192\.168\.\d{1,3}\.\d{1,3}$',             # 192.168.x.x
+            r'^169\.254\.\d{1,3}\.\d{1,3}$',             # Link-local
+        ]
+        
+        for pattern in private_ip_patterns:
+            if re.match(pattern, hostname):
+                return {
+                    "success": False,
+                    "error": "Private IP addresses are not allowed",
+                    "status_code": None
+                }
+                
+    except Exception as e:
+        logger.error(f"URL parsing error: {e}")
+        return {
+            "success": False,
+            "error": "Invalid URL format",
+            "status_code": None
+        }
+    
+    # Send the test webhook
+    try:
+        # Detect platform and format payload smartly
+        platform = detect_webhook_platform(url)
+        smart_payload = format_smart_payload(url, request.payload, is_test=True)
+        
+        start_time = datetime.now(timezone.utc)
+        
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.post(
+                url,
+                json=smart_payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "TrustFlow-Webhook-Test/1.0",
+                    "X-TrustFlow-Event": "testimonial.test",
+                    "X-TrustFlow-Delivery": str(uuid.uuid4()),
+                    "X-TrustFlow-Platform": platform,
+                }
+            )
+            
+            end_time = datetime.now(timezone.utc)
+            latency_ms = int((end_time - start_time).total_seconds() * 1000)
+            
+            # 2xx status codes are considered success
+            is_success = 200 <= response.status_code < 300
+            
+            # Try to get response body for debugging
+            try:
+                response_body = response.text[:500] if response.text else None
+            except:
+                response_body = None
+            
+            return {
+                "success": is_success,
+                "status_code": response.status_code,
+                "latency_ms": latency_ms,
+                "platform": platform,
+                "timestamp": end_time.isoformat(),
+                "request_payload": smart_payload,
+                "response_body": response_body,
+                "error": None if is_success else f"Received status {response.status_code}"
+            }
+            
+    except httpx.TimeoutException:
+        return {
+            "success": False,
+            "error": "Request timed out (5 second limit)",
+            "error_type": "timeout",
+            "status_code": 408,
+            "latency_ms": 5000,
+            "platform": detect_webhook_platform(url),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "request_payload": None,
+            "response_body": None
+        }
+    except httpx.RequestError as e:
+        logger.error(f"Webhook test request error: {e}")
+        return {
+            "success": False,
+            "error": f"Connection error: {str(e)}",
+            "error_type": "connection",
+            "status_code": None,
+            "latency_ms": None,
+            "platform": detect_webhook_platform(url),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "request_payload": None,
+            "response_body": None
+        }
+    except Exception as e:
+        logger.error(f"Webhook test error: {e}")
+        return {
+            "success": False,
+            "error": "An unexpected error occurred",
+            "error_type": "unknown",
+            "status_code": None,
+            "latency_ms": None,
+            "platform": detect_webhook_platform(url),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "request_payload": None,
+            "response_body": None
+        }
+
+
+# --- VIDEO STUDIO API ROUTES ---
+
+class VideoMetadataUpdate(BaseModel):
+    """Model for video metadata update"""
+    duration: Optional[float] = None
+    aspectRatio: Optional[str] = None
+    editedAt: Optional[str] = None
+    originalUrl: Optional[str] = None
+
+class VideoUpdateRequest(BaseModel):
+    """Model for video update request"""
+    video_url: str
+    video_metadata: Optional[Dict[str, Any]] = None
+
+@api_router.get("/testimonials/{testimonial_id}/video")
+async def get_video_info(testimonial_id: str):
+    """Get video information for a testimonial"""
+    try:
+        response = supabase.table('testimonials') \
+            .select('id, video_url, video_metadata, respondent_name, created_at') \
+            .eq('id', testimonial_id) \
+            .single() \
+            .execute()
+        
+        if response.data:
+            return {"status": "success", "testimonial": response.data}
+        
+        raise HTTPException(status_code=404, detail="Testimonial not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching video info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch video info")
+
+
+@api_router.put("/testimonials/{testimonial_id}/video")
+async def update_video(testimonial_id: str, data: VideoUpdateRequest):
+    """
+    Update video URL and metadata for a testimonial.
+    Used by the Video Studio after processing.
+    """
+    try:
+        update_data = {
+            'video_url': data.video_url,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+        if data.video_metadata:
+            update_data['video_metadata'] = data.video_metadata
+        
+        response = supabase.table('testimonials') \
+            .update(update_data) \
+            .eq('id', testimonial_id) \
+            .execute()
+        
+        if response.data:
+            logger.info(f"Video updated for testimonial {testimonial_id}")
+            return {
+                "status": "success", 
+                "message": "Video updated successfully",
+                "testimonial": response.data[0]
+            }
+        
+        raise HTTPException(status_code=404, detail="Testimonial not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating video: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update video")
+
+
+@api_router.delete("/testimonials/{testimonial_id}/video/original")
+async def delete_original_video(testimonial_id: str, file_path: str):
+    """
+    Delete the original video file from storage after editing.
+    Used to clean up storage space.
+    """
+    try:
+        # Verify testimonial exists
+        testimonial_res = supabase.table('testimonials') \
+            .select('id, video_url') \
+            .eq('id', testimonial_id) \
+            .single() \
+            .execute()
+        
+        if not testimonial_res.data:
+            raise HTTPException(status_code=404, detail="Testimonial not found")
+        
+        # Delete from storage
+        response = supabase.storage \
+            .from_('testimonial_videos') \
+            .remove([file_path])
+        
+        logger.info(f"Deleted original video file: {file_path}")
+        return {"status": "success", "message": "Original video deleted"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting original video: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete video")
+
+
+@api_router.get("/spaces/{space_id}/video-testimonials")
+async def get_video_testimonials(space_id: str):
+    """Get all video testimonials for a space"""
+    try:
+        response = supabase.table('testimonials') \
+            .select('id, video_url, video_metadata, respondent_name, respondent_photo_url, created_at, is_liked') \
+            .eq('space_id', space_id) \
+            .eq('type', 'video') \
+            .not_('video_url', 'is', 'null') \
+            .order('created_at', desc=True) \
+            .execute()
+        
+        return {
+            "status": "success",
+            "testimonials": response.data or []
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching video testimonials: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch video testimonials")
+
+
+# --- PUBLIC WALL OF LOVE API ROUTES ---
+
+@api_router.get("/public/wall/{identifier}")
+async def get_public_wall(identifier: str):
+    """
+    Get public wall data by slug or space_id.
+    Used by the Public Wall of Love page.
+    """
+    try:
+        space_data = None
+        
+        # Try slug first
+        slug_res = supabase.table('spaces') \
+            .select('id, slug, space_name, logo_url, header_title, custom_message, owner_id') \
+            .eq('slug', identifier) \
+            .execute()
+        
+        if slug_res.data and len(slug_res.data) > 0:
+            space_data = slug_res.data[0]
+        else:
+            # Try space_id
+            id_res = supabase.table('spaces') \
+                .select('id, slug, space_name, logo_url, header_title, custom_message, owner_id') \
+                .eq('id', identifier) \
+                .execute()
+            
+            if id_res.data and len(id_res.data) > 0:
+                space_data = id_res.data[0]
+        
+        if not space_data:
+            raise HTTPException(status_code=404, detail="Wall not found")
+        
+        # Get approved testimonials
+        testimonials_res = supabase.table('testimonials') \
+            .select('*') \
+            .eq('space_id', space_data['id']) \
+            .eq('is_liked', True) \
+            .order('created_at', desc=True) \
+            .execute()
+        
+        # Get widget settings
+        settings_res = supabase.table('widget_configurations') \
+            .select('settings') \
+            .eq('space_id', space_data['id']) \
+            .single() \
+            .execute()
+        
+        widget_settings = settings_res.data.get('settings', {}) if settings_res.data else {}
+        
+        return {
+            "status": "success",
+            "space": space_data,
+            "testimonials": testimonials_res.data or [],
+            "widget_settings": widget_settings
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching public wall: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch wall data")
+
+
 # Include the router
 app.include_router(api_router)
 
