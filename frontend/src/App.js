@@ -12,6 +12,7 @@ import SpaceOverview from "@/pages/SpaceOverview";
 import SubmitTestimonial from "@/pages/SubmitTestimonial";
 import WallOfLove from "@/pages/WallOfLove";
 import ForgotPassword from "./pages/ForgotPassword";
+import PublicWall from "@/pages/PublicWall";
 
 // List of known TrustFlow domains (add your production domains here)
 const KNOWN_DOMAINS = [
@@ -41,7 +42,7 @@ const CustomDomainHandler = () => {
   const [error, setError] = useState(null);
   
   // ✅ FIX: LIVE BACKEND URL (Hardcoded for stability on custom domains)
-  const API_BASE = "https://trust-flow-app.vercel.app";
+  const API_BASE = "https://refactored-barnacle-q7j55jp956wvh9j9r-8000.app.github.dev";
 
   useEffect(() => {
     const resolveCustomDomain = async () => {
@@ -166,6 +167,10 @@ function AppRoutes() {
       
       {/* Widget Embed Route */}
       <Route path="/widget/:spaceId" element={<WallOfLove />} />
+      
+      {/* NEW: Public Wall of Love Routes */}
+      <Route path="/wall/:identifier" element={<PublicWall />} />
+      <Route path="/p/:identifier" element={<PublicWall />} />
       
       {/* Protected Routes */}
       <Route

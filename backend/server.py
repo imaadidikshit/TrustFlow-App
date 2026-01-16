@@ -1088,6 +1088,196 @@ async def test_webhook(request: WebhookTestRequest):
         }
 
 
+# --- VIDEO STUDIO API ROUTES ---
+
+class VideoMetadataUpdate(BaseModel):
+    """Model for video metadata update"""
+    duration: Optional[float] = None
+    aspectRatio: Optional[str] = None
+    editedAt: Optional[str] = None
+    originalUrl: Optional[str] = None
+
+class VideoUpdateRequest(BaseModel):
+    """Model for video update request"""
+    video_url: str
+    video_metadata: Optional[Dict[str, Any]] = None
+
+@api_router.get("/testimonials/{testimonial_id}/video")
+async def get_video_info(testimonial_id: str):
+    """Get video information for a testimonial"""
+    try:
+        response = supabase.table('testimonials') \
+            .select('id, video_url, video_metadata, respondent_name, created_at') \
+            .eq('id', testimonial_id) \
+            .single() \
+            .execute()
+        
+        if response.data:
+            return {"status": "success", "testimonial": response.data}
+        
+        raise HTTPException(status_code=404, detail="Testimonial not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching video info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch video info")
+
+
+@api_router.put("/testimonials/{testimonial_id}/video")
+async def update_video(testimonial_id: str, data: VideoUpdateRequest):
+    """
+    Update video URL and metadata for a testimonial.
+    Used by the Video Studio after processing.
+    """
+    try:
+        update_data = {
+            'video_url': data.video_url,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }
+        
+        if data.video_metadata:
+            update_data['video_metadata'] = data.video_metadata
+        
+        response = supabase.table('testimonials') \
+            .update(update_data) \
+            .eq('id', testimonial_id) \
+            .execute()
+        
+        if response.data:
+            logger.info(f"Video updated for testimonial {testimonial_id}")
+            return {
+                "status": "success", 
+                "message": "Video updated successfully",
+                "testimonial": response.data[0]
+            }
+        
+        raise HTTPException(status_code=404, detail="Testimonial not found")
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating video: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update video")
+
+
+@api_router.delete("/testimonials/{testimonial_id}/video/original")
+async def delete_original_video(testimonial_id: str, file_path: str):
+    """
+    Delete the original video file from storage after editing.
+    Used to clean up storage space.
+    """
+    try:
+        # Verify testimonial exists
+        testimonial_res = supabase.table('testimonials') \
+            .select('id, video_url') \
+            .eq('id', testimonial_id) \
+            .single() \
+            .execute()
+        
+        if not testimonial_res.data:
+            raise HTTPException(status_code=404, detail="Testimonial not found")
+        
+        # Delete from storage
+        response = supabase.storage \
+            .from_('testimonial_videos') \
+            .remove([file_path])
+        
+        logger.info(f"Deleted original video file: {file_path}")
+        return {"status": "success", "message": "Original video deleted"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting original video: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete video")
+
+
+@api_router.get("/spaces/{space_id}/video-testimonials")
+async def get_video_testimonials(space_id: str):
+    """Get all video testimonials for a space"""
+    try:
+        response = supabase.table('testimonials') \
+            .select('id, video_url, video_metadata, respondent_name, respondent_photo_url, created_at, is_liked') \
+            .eq('space_id', space_id) \
+            .eq('type', 'video') \
+            .not_('video_url', 'is', 'null') \
+            .order('created_at', desc=True) \
+            .execute()
+        
+        return {
+            "status": "success",
+            "testimonials": response.data or []
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching video testimonials: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch video testimonials")
+
+
+# --- PUBLIC WALL OF LOVE API ROUTES ---
+
+@api_router.get("/public/wall/{identifier}")
+async def get_public_wall(identifier: str):
+    """
+    Get public wall data by slug or space_id.
+    Used by the Public Wall of Love page.
+    """
+    try:
+        space_data = None
+        
+        # Try slug first
+        slug_res = supabase.table('spaces') \
+            .select('id, slug, space_name, logo_url, header_title, custom_message, owner_id') \
+            .eq('slug', identifier) \
+            .execute()
+        
+        if slug_res.data and len(slug_res.data) > 0:
+            space_data = slug_res.data[0]
+        else:
+            # Try space_id
+            id_res = supabase.table('spaces') \
+                .select('id, slug, space_name, logo_url, header_title, custom_message, owner_id') \
+                .eq('id', identifier) \
+                .execute()
+            
+            if id_res.data and len(id_res.data) > 0:
+                space_data = id_res.data[0]
+        
+        if not space_data:
+            raise HTTPException(status_code=404, detail="Wall not found")
+        
+        # Get approved testimonials
+        testimonials_res = supabase.table('testimonials') \
+            .select('*') \
+            .eq('space_id', space_data['id']) \
+            .eq('is_liked', True) \
+            .order('created_at', desc=True) \
+            .execute()
+        
+        # Get widget settings
+        settings_res = supabase.table('widget_configurations') \
+            .select('settings') \
+            .eq('space_id', space_data['id']) \
+            .single() \
+            .execute()
+        
+        widget_settings = settings_res.data.get('settings', {}) if settings_res.data else {}
+        
+        return {
+            "status": "success",
+            "space": space_data,
+            "testimonials": testimonials_res.data or [],
+            "widget_settings": widget_settings
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching public wall: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch wall data")
+
+
 # Include the router
 app.include_router(api_router)
 

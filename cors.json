@@ -1,0 +1,9 @@
+[
+  {
+    "origin": ["*"],
+    "method": ["GET", "POST", "PUT", "DELETE"],
+    "headers": ["*"],
+    "expose_headers": ["Content-Range", "ETag"],
+    "max_age_seconds": 3600
+  }
+]
