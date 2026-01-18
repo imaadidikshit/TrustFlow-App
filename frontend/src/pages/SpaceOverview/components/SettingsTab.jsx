@@ -172,10 +172,13 @@ const PrettyResponseViewer = ({ result, onClose, webhookUrl }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ 
+        opacity: { duration: 0.2 },
+        height: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }
+      }}
       className={`mt-4 rounded-xl border-2 ${colors.border} ${colors.bg} overflow-hidden`}
     >
       {/* Main Status Banner */}
@@ -296,10 +299,8 @@ const PrettyResponseViewer = ({ result, onClose, webhookUrl }) => {
           </button>
         </CollapsibleTrigger>
         
-        <CollapsibleContent>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <div
             className="p-4 bg-gray-900 dark:bg-gray-950 space-y-4"
           >
             {/* Webhook URL */}
@@ -335,7 +336,7 @@ const PrettyResponseViewer = ({ result, onClose, webhookUrl }) => {
                 <code className="text-xs text-red-400">{result.error}</code>
               </div>
             )}
-          </motion.div>
+          </div>
         </CollapsibleContent>
       </Collapsible>
     </motion.div>

@@ -1088,49 +1088,11 @@ const GalleryTab = ({
 
   return (
     <div className="space-y-4 sm:space-y-6 relative">
-      {/* Floating Save Button - appears when there are unsaved changes */}
-      <AnimatePresence>
-        {hasUnsavedChanges && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-2"
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDiscardChanges}
-              className="bg-white shadow-lg border-slate-300 hover:bg-slate-50"
-            >
-              <RotateCcw className="w-4 h-4 mr-1.5" />
-              Discard
-            </Button>
-            <Button
-              onClick={handleSaveChanges}
-              disabled={isSaving}
-              className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-xl shadow-violet-500/30"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-1.5" />
-                  Save Changes
-                </>
-              )}
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
-      {/* Header with Unsaved Changes Indicator */}
-      <div className="flex flex-col gap-3 sm:gap-4">
+      {/* Header with Unsaved Changes Indicator + Save/Discard Buttons */}
+      <div className="flex flex-col gap-3 sm:gap-4 sticky top-0 z-40 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-3 sm:-mx-6 sm:px-6 border-b border-slate-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
+          <div className="flex-1 min-w-0">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
               <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-violet-500" />
               Design Gallery
@@ -1145,23 +1107,67 @@ const GalleryTab = ({
             </p>
           </div>
           
+          {/* Right side - Selection badges + Save/Discard buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            {currentPresetId && currentPresetId !== 'default' && (
-              <div className="flex items-center gap-1.5 sm:gap-2 bg-violet-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-violet-200">
-                <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
-                <span className="text-xs sm:text-sm text-violet-700 font-medium">
-                  {getPresetById(currentPresetId)?.name || 'Custom'}
-                </span>
-              </div>
-            )}
-            {currentCardStyle && currentCardStyle !== 'default' && (
-              <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-emerald-200">
-                <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
-                <span className="text-xs sm:text-sm text-emerald-700 font-medium">
-                  {getCardLayoutById(currentCardStyle)?.name || 'Custom'}
-                </span>
-              </div>
-            )}
+            {/* Current selections badges - hidden on mobile when unsaved */}
+            <div className="hidden sm:flex items-center gap-2">
+              {currentPresetId && currentPresetId !== 'default' && (
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-violet-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-violet-200">
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
+                  <span className="text-xs sm:text-sm text-violet-700 font-medium">
+                    {getPresetById(currentPresetId)?.name || 'Custom'}
+                  </span>
+                </div>
+              )}
+              {currentCardStyle && currentCardStyle !== 'default' && (
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-emerald-200">
+                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+                  <span className="text-xs sm:text-sm text-emerald-700 font-medium">
+                    {getCardLayoutById(currentCardStyle)?.name || 'Custom'}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Save/Discard buttons - always in header when changes exist */}
+            <AnimatePresence>
+              {hasUnsavedChanges && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="flex items-center gap-2"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDiscardChanges}
+                    className="bg-white shadow-sm border-slate-300 hover:bg-slate-50 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Discard</span>
+                  </Button>
+                  <Button
+                    onClick={handleSaveChanges}
+                    disabled={isSaving}
+                    size="sm"
+                    className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white shadow-lg shadow-violet-500/30 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin sm:mr-1.5" />
+                        <span className="hidden sm:inline">Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-3.5 h-3.5 sm:mr-1.5" />
+                        <span className="hidden sm:inline">Save</span>
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -1317,8 +1323,8 @@ const GalleryTab = ({
 
         {/* PRESETS SECTION */}
         <TabsContent value="presets" className="space-y-4 sm:space-y-6">
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          {/* Category Filter - Sticky on mobile */}
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none">
             {PRESET_CATEGORIES.map((category) => {
               const IconComponent = CATEGORY_ICONS[category.icon];
               const isActive = selectedCategory === category.id;
@@ -1392,8 +1398,8 @@ const GalleryTab = ({
 
         {/* CARD LAYOUTS SECTION */}
         <TabsContent value="cards" className="space-y-4 sm:space-y-6">
-          {/* Layout Category Filter */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          {/* Layout Category Filter - Sticky on mobile */}
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none">
             {layoutCategories.map((category) => {
               const IconComponent = category.icon;
               const isActive = selectedLayoutCategory === category.id;
@@ -1463,42 +1469,44 @@ const GalleryTab = ({
 
         {/* COMBO PRESETS SECTION */}
         <TabsContent value="combos" className="space-y-4 sm:space-y-6">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
-              <Layers className="w-5 h-5 text-amber-600" />
+          {/* Header + Category Filter - Sticky on mobile */}
+          <div className="sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
+                <Layers className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-slate-900 text-sm sm:text-base">Combo Packs</h3>
+                <p className="text-xs text-slate-500">Pre-matched theme + card layout combinations</p>
+              </div>
+              <Badge className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] px-2 border-0">
+                {COMBO_PRESETS.length} Combos
+              </Badge>
             </div>
-            <div>
-              <h3 className="font-semibold text-slate-900 text-sm sm:text-base">Combo Packs</h3>
-              <p className="text-xs text-slate-500">Pre-matched theme + card layout combinations</p>
-            </div>
-            <Badge className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] px-2 border-0">
-              {COMBO_PRESETS.length} Combos
-            </Badge>
-          </div>
 
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2">
-            {COMBO_CATEGORIES.map((category) => {
-              const isActive = selectedComboCategory === category.id;
-              
-              return (
-                <Button
-                  key={category.id}
-                  variant={isActive ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedComboCategory(category.id)}
-                  className={`transition-all text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ${
-                    isActive 
-                      ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-md' 
-                      : 'hover:bg-slate-100 hover:border-slate-300'
-                  }`}
-                >
-                  <span className="hidden sm:inline">{category.name}</span>
-                  <span className="sm:hidden">{category.name.slice(0, 4)}</span>
-                </Button>
-              );
-            })}
+            {/* Category Filter */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {COMBO_CATEGORIES.map((category) => {
+                const isActive = selectedComboCategory === category.id;
+                
+                return (
+                  <Button
+                    key={category.id}
+                    variant={isActive ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedComboCategory(category.id)}
+                    className={`transition-all text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ${
+                      isActive 
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-md' 
+                        : 'hover:bg-slate-100 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className="hidden sm:inline">{category.name}</span>
+                    <span className="sm:hidden">{category.name.slice(0, 4)}</span>
+                  </Button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Combo Grid */}
