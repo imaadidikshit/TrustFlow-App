@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -7,17 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { 
-  ArrowLeft, Copy, ExternalLink, Inbox, Edit, Code, Settings, Loader2, Share2, BarChart3 
+  ArrowLeft, Copy, ExternalLink, Inbox, Edit, Code, Settings, Loader2, Share2, BarChart3, Sparkles, Lock 
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '@/components/ui/sonner';
 import { v4 as uuidv4 } from 'uuid'; 
+import { FeatureGate, PlanBadge, FeatureIndicator } from '@/components/FeatureGate';
+import { useFeature } from '@/hooks/useFeature'; 
 
 // Import Sub-components
 import InboxTab from './components/InboxTab';
 import EditFormTab from './components/EditFormTab';
 import ShareTab from './components/ShareTab';
 import WidgetTab from './components/WidgetTab';
+import GalleryTab from './components/GalleryTab';
 import SettingsTab from './components/SettingsTab';
 import CTADashboardTab from './components/CTADashboardTab';
 
@@ -31,6 +35,41 @@ const SpaceOverview = () => {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [activeTab, setActiveTab] = useState('inbox');
   const navigate = useNavigate();
+
+  // --- HEADER SCROLL STATE ---
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const scrollContainerRef = useRef(null);
+
+  // Scroll handler for header visibility
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const currentScrollY = container.scrollTop;
+    const scrollThreshold = 50; // Minimum scroll before hiding
+    
+    if (currentScrollY < scrollThreshold) {
+      // Always show header when near top
+      setIsHeaderVisible(true);
+    } else if (currentScrollY > lastScrollY) {
+      // Scrolling down - hide header
+      setIsHeaderVisible(false);
+    } else {
+      // Scrolling up - show header
+      setIsHeaderVisible(true);
+    }
+    
+    setLastScrollY(currentScrollY);
+  }, [lastScrollY]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   // --- DEFAULTS ---
   const DEFAULT_THEME_CONFIG = {
@@ -55,6 +94,16 @@ const SpaceOverview = () => {
     popupDuration: 5,  // seconds display time
     popupGap: 10,      // seconds between popups
     popupMessage: 'Someone just shared love!',
+    // New Settings for Tasks
+    smoothContinuousScroll: false,  // Marquee-style infinite scroll
+    smoothScrollSpeed: 30,          // Pixels per second for smooth scroll
+    showBranding: true,             // Show "Powered by TrustFlow" badge
+    seeMoreEnabled: true,           // Toggle for See More button visibility
+    seeMoreButtonText: 'See More',  // See More button text
+    seeMoreButtonLink: '#',         // See More button redirect URL
+    // Gallery Tab Settings
+    presetId: 'default',            // Currently applied preset ID
+    cardStyle: 'default',           // Currently applied card layout ID
   };
 
   // --- STATE ---
@@ -67,10 +116,12 @@ const SpaceOverview = () => {
     thank_you_title: 'Thank you!',
     thank_you_message: 'Your testimonial has been submitted.',
     theme_config: DEFAULT_THEME_CONFIG,
-    logo_url: null
+    logo_url: null,
+    extra_settings: {} // NEW: JSONB column for pro settings
   });
 
   const [widgetSettings, setWidgetSettings] = useState(DEFAULT_WIDGET_SETTINGS);
+  const [savedWidgetSettings, setSavedWidgetSettings] = useState(DEFAULT_WIDGET_SETTINGS); // Track what's saved in DB
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -118,9 +169,12 @@ const SpaceOverview = () => {
         thank_you_title: fetchedFormSettings.thank_you_title || 'Thank you!',
         thank_you_message: fetchedFormSettings.thank_you_message || 'Your testimonial has been submitted.',
         theme_config: { ...DEFAULT_THEME_CONFIG, ...(fetchedFormSettings.theme_config || {}) },
-        logo_url: spaceData.logo_url 
+        // Change yahan hai: Pehle settings table ka logo, nahi to space table ka
+        logo_url: fetchedFormSettings.logo_url || spaceData.logo_url,
+        // NEW: Fetch extra_settings JSONB
+        extra_settings: fetchedFormSettings.extra_settings || {}
       });
-
+      console.log('DEBUG: Fetched form settings with extra_settings:', fetchedFormSettings.extra_settings);
       // Handle Widget Settings
       let fetchedWidgetSettings = {};
       if (Array.isArray(spaceData.widget_configurations) && spaceData.widget_configurations.length > 0) {
@@ -130,6 +184,12 @@ const SpaceOverview = () => {
       }
 
       setWidgetSettings({
+        ...DEFAULT_WIDGET_SETTINGS,
+        ...fetchedWidgetSettings
+      });
+      
+      // Also save the DB version for comparison/discard
+      setSavedWidgetSettings({
         ...DEFAULT_WIDGET_SETTINGS,
         ...fetchedWidgetSettings
       });
@@ -208,6 +268,8 @@ const SpaceOverview = () => {
   const saveFormSettings = async (settingsToSave = formSettings, logoFile = null) => {
     setSaving(true);
     try {
+      console.log('DEBUG: Saving form settings:', settingsToSave);
+      
       let finalLogoUrl = settingsToSave.logo_url;
 
       if (logoFile) {
@@ -223,14 +285,32 @@ const SpaceOverview = () => {
 
       await supabase.from('spaces').update({ logo_url: finalLogoUrl }).eq('id', spaceId);
       
+      // Fetch existing extra_settings first to merge, not overwrite
+      const { data: existingData } = await supabase
+        .from('space_form_settings')
+        .select('extra_settings')
+        .eq('space_id', spaceId)
+        .single();
+      
+      const mergedExtraSettings = {
+        ...(existingData?.extra_settings || {}),
+        ...(formSpecificSettings.extra_settings || {})
+      };
+      
+      console.log('DEBUG: Merged extra_settings:', mergedExtraSettings);
+      
       const { error: settingsError } = await supabase
         .from('space_form_settings')
-        .upsert({ space_id: spaceId, ...formSpecificSettings }, { onConflict: 'space_id' });
+        .upsert({ 
+          space_id: spaceId, 
+          ...formSpecificSettings,
+          extra_settings: mergedExtraSettings 
+        }, { onConflict: 'space_id' });
 
       if (settingsError) throw settingsError;
 
       setSpace({ ...space, logo_url: finalLogoUrl });
-      setFormSettings({ ...settingsToSave, logo_url: finalLogoUrl });
+      setFormSettings({ ...settingsToSave, logo_url: finalLogoUrl, extra_settings: mergedExtraSettings });
 
     } catch (error) {
       console.error(error);
@@ -270,42 +350,72 @@ const SpaceOverview = () => {
 
   return (
     // UPDATED: Added MASTER KEY classes to hide scrollbars for ALL children ([&_*...])
-    <div className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
+    <div 
+      ref={scrollContainerRef}
+      className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
       [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] 
       [&_*::-webkit-scrollbar]:hidden [&_*]:[scrollbar-width:none] [&_*]:[-ms-overflow-style:none]">
       
       <Toaster richColors position="bottom-right" />
 
-      {/* --- HEADER (MOBILE OPTIMIZED) --- */}
-      <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 md:justify-between">
+      {/* --- PREMIUM ANIMATED HEADER --- */}
+      <motion.header 
+        initial={{ y: 0 }}
+        animate={{ 
+          y: isHeaderVisible ? 0 : -100,
+          opacity: isHeaderVisible ? 1 : 0
+        }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 30,
+          duration: 0.3
+        }}
+        className="border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-md sticky top-0 z-50 shadow-sm"
+      >
+        <div className="container mx-auto px-4 py-3 md:py-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 md:justify-between">
             
             {/* Left: Back Btn + Title */}
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/dashboard')}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="shrink-0 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors" 
+                onClick={() => navigate('/dashboard')}
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg md:text-xl font-bold truncate">{space.space_name}</h1>
+                <h1 className="text-lg md:text-xl font-bold truncate bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  {space.space_name}
+                </h1>
                 <p className="text-xs md:text-sm text-muted-foreground truncate">/{space.slug}</p>
               </div>
             </div>
 
             {/* Right: Actions (Full width on mobile) */}
-            <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
-              <Button variant="outline" className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10" onClick={copySubmitLink}>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button 
+                variant="outline" 
+                className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10 border-gray-200 hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all" 
+                onClick={copySubmitLink}
+              >
                 <Copy className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                 Copy Link
               </Button>
-              <Button variant="outline" className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10" onClick={() => window.open(`/submit/${space.slug}`, '_blank')}>
+              <Button 
+                variant="outline" 
+                className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10 border-gray-200 hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all" 
+                onClick={() => window.open(`/submit/${space.slug}`, '_blank')}
+              >
                 <ExternalLink className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                 Preview Form
               </Button>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       <main className="container mx-auto px-4 py-4 md:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -334,6 +444,11 @@ const SpaceOverview = () => {
                 Widget
               </TabsTrigger>
 
+              <TabsTrigger value="gallery" className="flex items-center gap-2 flex-shrink-0">
+                <Sparkles className="w-4 h-4" />
+                Gallery
+              </TabsTrigger>
+
               <TabsTrigger value="share" className="flex items-center gap-2 flex-shrink-0">
                 <Share2 className="w-4 h-4" />
                 Share & QR
@@ -354,7 +469,9 @@ const SpaceOverview = () => {
             </TabsContent>
 
             <TabsContent value="roi-dashboard" className="mt-0">
-              <CTADashboardTab spaceId={spaceId} />
+              <FeatureGate featureKey="advanced.cta">
+                <CTADashboardTab spaceId={spaceId} />
+              </FeatureGate>
             </TabsContent>
 
             <TabsContent value="edit-form" className="mt-0">
@@ -367,7 +484,9 @@ const SpaceOverview = () => {
             </TabsContent>
 
             <TabsContent value="share" className="mt-0">
-              <ShareTab space={space} />
+              <FeatureGate featureKey="widget.share_qr">
+                <ShareTab space={{ ...space, ...formSettings }} />
+              </FeatureGate>
             </TabsContent>
 
             <TabsContent value="widget" className="mt-0">
@@ -378,6 +497,19 @@ const SpaceOverview = () => {
                 widgetSettings={widgetSettings}
                 setWidgetSettings={setWidgetSettings}
                 saveWidgetSettings={saveWidgetSettings}
+              />
+            </TabsContent>
+
+            <TabsContent value="gallery" className="mt-0">
+              <GalleryTab 
+                spaceId={spaceId}
+                widgetSettings={widgetSettings}
+                setWidgetSettings={setWidgetSettings}
+                saveWidgetSettings={saveWidgetSettings}
+                savedWidgetSettings={savedWidgetSettings}
+                setSavedWidgetSettings={setSavedWidgetSettings}
+                setActiveTab={setActiveTab}
+                testimonials={testimonials}
               />
             </TabsContent>
 

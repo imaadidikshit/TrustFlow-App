@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import confetti from 'canvas-confetti';
+import { FeatureGate, PlanBadge, FeatureIndicator } from '@/components/FeatureGate';
+import { useFeature } from '@/hooks/useFeature';
 
 // --- INTELLIGENT ERROR MESSAGES MAPPING ---
 const getHumanReadableError = (statusCode, errorType) => {
@@ -172,10 +174,13 @@ const PrettyResponseViewer = ({ result, onClose, webhookUrl }) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 25 }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ 
+        opacity: { duration: 0.2 },
+        height: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }
+      }}
       className={`mt-4 rounded-xl border-2 ${colors.border} ${colors.bg} overflow-hidden`}
     >
       {/* Main Status Banner */}
@@ -296,10 +301,8 @@ const PrettyResponseViewer = ({ result, onClose, webhookUrl }) => {
           </button>
         </CollapsibleTrigger>
         
-        <CollapsibleContent>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+        <CollapsibleContent className="overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+          <div
             className="p-4 bg-gray-900 dark:bg-gray-950 space-y-4"
           >
             {/* Webhook URL */}
@@ -335,7 +338,7 @@ const PrettyResponseViewer = ({ result, onClose, webhookUrl }) => {
                 <code className="text-xs text-red-400">{result.error}</code>
               </div>
             )}
-          </motion.div>
+          </div>
         </CollapsibleContent>
       </Collapsible>
     </motion.div>
@@ -1318,7 +1321,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 px-2 sm:px-0">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 px-2 sm:px-0 overflow-x-hidden">
       
       <NotificationToast message={notification.message} type={notification.type} isVisible={notification.isVisible} />
 
@@ -1405,26 +1408,24 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
         </Card>
 
         {/* 1.5 CUSTOM DOMAIN (Pro Feature) */}
-        <Card className="border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
-                  <Link2 className="w-5 h-5 text-violet-600" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">Custom Domain</CardTitle>
-                    <Badge className="bg-violet-600 text-white text-[10px] px-2 py-0.5 font-semibold border-0">
-                      <Crown className="w-3 h-3 mr-1" />
-                      PRO
-                    </Badge>
+        <FeatureGate featureKey="advanced.custom_domains">
+          <Card className="border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
+                    <Link2 className="w-5 h-5 text-violet-600" />
                   </div>
-                  <CardDescription>Connect your own domain for a branded experience.</CardDescription>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg">Custom Domain</CardTitle>
+                      <FeatureIndicator featureKey="advanced.custom_domains" />
+                    </div>
+                    <CardDescription>Connect your own domain for a branded experience.</CardDescription>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           <CardContent className="space-y-4">
             {isDomainLoading ? (
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -1576,29 +1577,31 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                                 </p>
                                 
                                 {/* DNS Values Table */}
-                                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-                                  <div className="grid grid-cols-[100px_1fr_40px] items-center p-3 border-b border-gray-200 dark:border-gray-800">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase">Type</span>
-                                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">CNAME</span>
-                                    <span></span>
-                                  </div>
-                                  <div className="grid grid-cols-[100px_1fr_40px] items-center p-3 border-b border-gray-200 dark:border-gray-800">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase">Name</span>
-                                    <span className="font-mono text-sm font-semibold text-violet-600 dark:text-violet-400 break-all">
-                                      {customDomain.domain.split('.')[0]}
-                                    </span>
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(customDomain.domain.split('.')[0])}>
-                                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                                    </Button>
-                                  </div>
-                                  <div className="grid grid-cols-[100px_1fr_40px] items-center p-3">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase">Target</span>
-                                    <span className="font-mono text-sm font-semibold text-green-600 dark:text-green-400 break-all">
-                                      cname.vercel-dns.com
-                                    </span>
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard('cname.vercel-dns.com')}>
-                                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                                    </Button>
+                                <div className="overflow-x-auto -mx-1">
+                                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden min-w-[280px]">
+                                    <div className="grid grid-cols-[80px_1fr_36px] sm:grid-cols-[100px_1fr_40px] items-center p-2.5 sm:p-3 border-b border-gray-200 dark:border-gray-800">
+                                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">Type</span>
+                                      <span className="font-mono text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">CNAME</span>
+                                      <span></span>
+                                    </div>
+                                    <div className="grid grid-cols-[80px_1fr_36px] sm:grid-cols-[100px_1fr_40px] items-center p-2.5 sm:p-3 border-b border-gray-200 dark:border-gray-800">
+                                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">Name</span>
+                                      <span className="font-mono text-xs sm:text-sm font-semibold text-violet-600 dark:text-violet-400 break-all">
+                                        {customDomain.domain.split('.')[0]}
+                                      </span>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-7 sm:w-7 p-0" onClick={() => copyToClipboard(customDomain.domain.split('.')[0])}>
+                                        <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
+                                      </Button>
+                                    </div>
+                                    <div className="grid grid-cols-[80px_1fr_36px] sm:grid-cols-[100px_1fr_40px] items-center p-2.5 sm:p-3">
+                                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">Target</span>
+                                      <span className="font-mono text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400 break-all">
+                                        cname.vercel-dns.com
+                                      </span>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-7 sm:w-7 p-0" onClick={() => copyToClipboard('cname.vercel-dns.com')}>
+                                        <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -1697,6 +1700,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             )}
           </CardContent>
         </Card>
+        </FeatureGate>
 
         {/* 2. NOTIFICATIONS & EXPORT (Same as before) */}
         <div className="grid md:grid-cols-2 gap-6">
@@ -1719,11 +1723,13 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             </CardContent>
           </Card>
 
+          <FeatureGate featureKey="advanced.export_data" showBadge={false}>
           <Card className="border-gray-200 dark:border-gray-800 shadow-sm flex flex-col">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg"><Download className="w-5 h-5 text-green-600" /></div>
                 <CardTitle className="text-lg">Export Data</CardTitle>
+                <FeatureIndicator featureKey="advanced.export_data" />
               </div>
             </CardHeader>
             <CardContent className="flex-1">
@@ -1734,9 +1740,11 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
               </div>
             </CardContent>
           </Card>
+          </FeatureGate>
         </div>
 
         {/* 2.5 WEBHOOKS & AUTOMATION */}
+        <FeatureGate featureKey="advanced.webhooks">
         <Card className="border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
@@ -1747,10 +1755,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                 <div>
                   <div className="flex items-center gap-2">
                     <CardTitle className="text-lg">Webhooks & Automation</CardTitle>
-                    <Badge className="bg-gradient-to-r from-violet-600 to-blue-600 text-white text-[10px] px-2 py-0.5 font-semibold border-0">
-                      <Zap className="w-3 h-3 mr-1" />
-                      NEW
-                    </Badge>
+                    <FeatureIndicator featureKey="advanced.webhooks" />
                   </div>
                   <CardDescription>Send real-time notifications to Zapier, Slack, or any webhook endpoint.</CardDescription>
                 </div>
@@ -1953,6 +1958,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             )}
           </CardContent>
         </Card>
+        </FeatureGate>
 
         {/* Delete Webhook Confirmation Modal */}
         <AnimatePresence>

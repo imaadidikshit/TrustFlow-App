@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/lib/supabase';
 import { 
   Video, FileText, Star, Loader2, CheckCircle, Camera, RotateCcw, 
-  Upload, ArrowLeft, User, Briefcase, Trash2, Image as ImageIcon, AlertCircle, AlertTriangle, Plus, X
+  Upload, ArrowLeft, User, Briefcase, Trash2, Image as ImageIcon, AlertCircle, AlertTriangle, Plus, X, ExternalLink
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import confetti from 'canvas-confetti';
@@ -67,7 +67,8 @@ const SubmitTestimonial = ({ customSlug }) => {
     theme: 'light', 
     accentColor: 'violet', 
     customColor: '#8b5cf6',
-    pageBackground: 'gradient-violet', 
+    pageBackground: 'gradient-violet',
+    pageTheme: 'minimal', // NEW: Premium page theme
     viewMode: 'mobile'
   };
 
@@ -79,11 +80,186 @@ const SubmitTestimonial = ({ customSlug }) => {
     custom: 'custom' 
   };
 
-  const pageBackgrounds = {
-    white: 'bg-white',
-    dark: 'bg-slate-950',
-    'gradient-violet': 'bg-gradient-to-br from-violet-50 via-white to-indigo-50 dark:from-violet-950/20 dark:via-background dark:to-indigo-950/20',
-    'gradient-blue': 'bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-blue-950/20 dark:via-background dark:to-cyan-950/20',
+  // === PREMIUM PAGE THEMES (Same as EditFormTab) ===
+  const PAGE_THEMES = {
+    'minimal': {
+      background: 'bg-gradient-to-br from-slate-50 via-white to-slate-50',
+      pattern: '',
+      overlay: '',
+      cardGlow: false,
+      floatingElements: false
+    },
+    'aurora': {
+      background: 'bg-gradient-to-br from-violet-100 via-pink-50 to-cyan-100',
+      pattern: 'aurora-waves',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'cosmic': {
+      background: 'bg-gradient-to-br from-slate-950 via-purple-950 to-slate-950',
+      pattern: 'stars',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true
+    },
+    'ocean': {
+      background: 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50',
+      pattern: 'waves',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'sunset': {
+      background: 'bg-gradient-to-br from-orange-50 via-rose-50 to-pink-50',
+      pattern: 'mesh',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'forest': {
+      background: 'bg-gradient-to-br from-emerald-50 via-green-50 to-lime-50',
+      pattern: 'leaves',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'arctic': {
+      background: 'bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50',
+      pattern: 'frost',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'midnight': {
+      background: 'bg-gradient-to-br from-gray-950 via-slate-900 to-gray-950',
+      pattern: 'rain',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true
+    },
+    'neon': {
+      background: 'bg-gradient-to-br from-slate-950 via-fuchsia-950 to-slate-950',
+      pattern: 'grid',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true,
+      neonAccent: true
+    },
+    'sunrise': {
+      background: 'bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50',
+      pattern: 'rays',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'lavender': {
+      background: 'bg-gradient-to-br from-purple-50 via-violet-50 to-fuchsia-50',
+      pattern: 'bubbles',
+      cardGlow: true,
+      floatingElements: true
+    },
+    'galaxy': {
+      background: 'bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950',
+      pattern: 'galaxy',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true
+    },
+    // === INTERACTIVE THEMES ===
+    'spotlight': {
+      background: 'bg-gradient-to-br from-slate-50 via-white to-slate-100',
+      cardGlow: true,
+      floatingElements: false,
+      interactive: 'spotlight'
+    },
+    'magnetic': {
+      background: 'bg-gradient-to-br from-violet-50 via-white to-purple-50',
+      cardGlow: true,
+      floatingElements: false,
+      interactive: 'magnetic'
+    },
+    'ripple': {
+      background: 'bg-gradient-to-br from-cyan-50 via-white to-blue-50',
+      cardGlow: true,
+      floatingElements: false,
+      interactive: 'ripple'
+    },
+    'glow-trail': {
+      background: 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950',
+      cardGlow: true,
+      floatingElements: false,
+      interactive: 'glow-trail',
+      isDark: true
+    },
+    // === ANIMATED THEMES ===
+    'breathing': {
+      background: 'bg-gradient-to-br from-rose-50 via-pink-50 to-rose-50',
+      cardGlow: true,
+      floatingElements: true,
+      animated: 'breathing'
+    },
+    'wave-motion': {
+      background: 'bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50',
+      cardGlow: true,
+      floatingElements: true,
+      animated: 'wave-motion'
+    },
+    'particle-storm': {
+      background: 'bg-gradient-to-br from-gray-950 via-purple-950 to-gray-950',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true,
+      animated: 'particle-storm'
+    },
+    'gradient-shift': {
+      background: 'bg-gradient-to-br from-violet-100 via-pink-100 to-orange-100',
+      cardGlow: true,
+      floatingElements: false,
+      animated: 'gradient-shift'
+    },
+    'northern-lights': {
+      background: 'bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true,
+      animated: 'northern-lights'
+    },
+    'confetti-rain': {
+      background: 'bg-gradient-to-br from-yellow-50 via-pink-50 to-cyan-50',
+      cardGlow: true,
+      floatingElements: false,
+      animated: 'confetti-rain'
+    },
+    // === GLASS & LUXURY THEMES ===
+    'glassmorphism': {
+      background: 'bg-gradient-to-br from-slate-100 via-white to-slate-100',
+      cardGlow: true,
+      floatingElements: true,
+      glass: true
+    },
+    'luxury-gold': {
+      background: 'bg-gradient-to-br from-amber-50 via-yellow-50 to-amber-50',
+      pattern: 'gold-shimmer',
+      cardGlow: true,
+      floatingElements: true,
+      luxuryAccent: 'gold'
+    },
+    'luxury-rose': {
+      background: 'bg-gradient-to-br from-pink-50 via-rose-50 to-pink-50',
+      pattern: 'shimmer',
+      cardGlow: true,
+      floatingElements: true,
+      luxuryAccent: 'rose'
+    },
+    'dark-elegance': {
+      background: 'bg-gradient-to-br from-zinc-950 via-neutral-900 to-zinc-950',
+      pattern: 'subtle-grid',
+      cardGlow: true,
+      floatingElements: true,
+      isDark: true,
+      luxuryAccent: 'silver'
+    }
+  };
+
+  // Get current page theme styles
+  const getPageThemeStyles = () => {
+    const themeId = formSettings?.theme_config?.pageTheme || 'minimal';
+    return PAGE_THEMES[themeId] || PAGE_THEMES['minimal'];
   };
 
   useEffect(() => {
@@ -105,6 +281,7 @@ const SubmitTestimonial = ({ customSlug }) => {
 
   const fetchSpace = async () => {
     try {
+      console.log('DEBUG: Fetching space data for slug:', slug);
       const { data, error } = await supabase
         .from('spaces')
         .select(`*, space_form_settings (*)`)
@@ -119,6 +296,8 @@ const SubmitTestimonial = ({ customSlug }) => {
       } else if (data.space_form_settings && typeof data.space_form_settings === 'object') {
         fetchedSettings = data.space_form_settings;
       }
+      
+      console.log('DEBUG: Fetched extra_settings:', fetchedSettings?.extra_settings);
 
       const mergedSettings = {
         header_title: fetchedSettings.header_title || data.header_title || '',
@@ -131,7 +310,9 @@ const SubmitTestimonial = ({ customSlug }) => {
         theme_config: {
           ...DEFAULT_THEME_CONFIG,
           ...(fetchedSettings.theme_config || {})
-        }
+        },
+        // NEW: Fetch extra_settings for branding and thank you redirect
+        extra_settings: fetchedSettings.extra_settings || {}
       };
 
       setSpace(data);
@@ -539,16 +720,285 @@ const SubmitTestimonial = ({ customSlug }) => {
 
   const themeClasses = getThemeClasses();
   const themeConfig = formSettings.theme_config;
+  const pageThemeStyles = getPageThemeStyles();
+
+  // Pattern CSS for different page themes
+  const getPatternCSS = (pattern) => {
+    const patterns = {
+      'aurora-waves': `
+        background-image: 
+          radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.3), transparent),
+          radial-gradient(ellipse 60% 40% at 80% 50%, rgba(255, 119, 198, 0.2), transparent),
+          radial-gradient(ellipse 50% 30% at 20% 80%, rgba(59, 130, 246, 0.2), transparent);
+      `,
+      'stars': `
+        background-image: 
+          radial-gradient(2px 2px at 20px 30px, white, transparent),
+          radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+          radial-gradient(1px 1px at 90px 40px, white, transparent),
+          radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.6), transparent),
+          radial-gradient(1px 1px at 160px 120px, white, transparent);
+        background-size: 200px 200px;
+      `,
+      'waves': `
+        background-image: 
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%2306b6d4' fill-opacity='0.1' d='M0,192L48,176C96,160,192,128,288,138.7C384,149,480,203,576,208C672,213,768,171,864,165.3C960,160,1056,192,1152,197.3C1248,203,1344,181,1392,170.7L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+        background-position: bottom;
+        background-size: cover;
+      `,
+      'mesh': `
+        background-image: 
+          radial-gradient(at 40% 20%, rgba(251, 146, 60, 0.3) 0px, transparent 50%),
+          radial-gradient(at 80% 0%, rgba(236, 72, 153, 0.3) 0px, transparent 50%),
+          radial-gradient(at 0% 50%, rgba(251, 146, 60, 0.2) 0px, transparent 50%);
+      `,
+      'leaves': `
+        background-image: 
+          radial-gradient(ellipse at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%),
+          radial-gradient(ellipse at 80% 70%, rgba(132, 204, 22, 0.15) 0%, transparent 50%);
+      `,
+      'frost': `
+        background-image: 
+          radial-gradient(circle at 20% 20%, rgba(186, 230, 253, 0.4) 0%, transparent 40%),
+          radial-gradient(circle at 80% 80%, rgba(165, 180, 252, 0.4) 0%, transparent 40%);
+      `,
+      'grid': `
+        background-image: 
+          linear-gradient(rgba(217, 70, 239, 0.1) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(217, 70, 239, 0.1) 1px, transparent 1px);
+        background-size: 40px 40px;
+      `,
+      'rays': `
+        background-image: 
+          radial-gradient(ellipse at 50% 0%, rgba(251, 191, 36, 0.3) 0%, transparent 60%);
+      `,
+      'bubbles': `
+        background-image: 
+          radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 30%),
+          radial-gradient(circle at 90% 80%, rgba(232, 121, 249, 0.15) 0%, transparent 30%);
+      `,
+      'galaxy': `
+        background-image: 
+          radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.3) 0%, transparent 50%),
+          radial-gradient(2px 2px at 10% 10%, white, transparent),
+          radial-gradient(2px 2px at 20% 80%, rgba(255,255,255,0.8), transparent);
+        background-size: 100% 100%, 150px 150px, 200px 200px;
+      `,
+      'rain': `
+        background-image: linear-gradient(to bottom, transparent 0%, rgba(100, 116, 139, 0.1) 100%);
+      `,
+      'subtle-grid': `
+        background-image: 
+          linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+        background-size: 30px 30px;
+      `,
+      'gold-shimmer': `
+        background-image: linear-gradient(135deg, rgba(251,191,36,0.1) 0%, transparent 50%, rgba(251,191,36,0.1) 100%);
+      `,
+      'shimmer': `
+        background-image: linear-gradient(135deg, rgba(244,114,182,0.1) 0%, transparent 50%, rgba(244,114,182,0.1) 100%);
+      `
+    };
+    return patterns[pattern] || '';
+  };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 transition-colors duration-500 ${pageBackgrounds[themeConfig.pageBackground]}`}>
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${pageThemeStyles.background}`}>
+      {/* Pattern Overlay */}
+      {pageThemeStyles.pattern && (
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{ cssText: getPatternCSS(pageThemeStyles.pattern) }}
+        />
+      )}
+      
+      {/* Glass Effect */}
+      {pageThemeStyles.glass && (
+        <div className="absolute inset-0 pointer-events-none backdrop-blur-xl bg-white/30" />
+      )}
+      
+      {/* Animated Theme Effects */}
+      {pageThemeStyles.animated && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {pageThemeStyles.animated === 'breathing' && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br from-rose-200/30 via-transparent to-pink-200/30"
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          )}
+          {pageThemeStyles.animated === 'wave-motion' && (
+            <>
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-cyan-200/40 to-transparent"
+                animate={{ y: [0, -15, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-blue-200/30 to-transparent"
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+              />
+            </>
+          )}
+          {pageThemeStyles.animated === 'particle-storm' && (
+            <>
+              {[...Array(15)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1 h-1 bg-violet-400 rounded-full"
+                  initial={{ x: `${Math.random() * 100}%`, y: '-5%', opacity: 0 }}
+                  animate={{ 
+                    y: '105%', 
+                    opacity: [0, 1, 1, 0],
+                    x: `${Math.random() * 100}%`
+                  }}
+                  transition={{ 
+                    duration: 4 + Math.random() * 3, 
+                    repeat: Infinity, 
+                    delay: Math.random() * 4,
+                    ease: "linear"
+                  }}
+                />
+              ))}
+            </>
+          )}
+          {pageThemeStyles.animated === 'gradient-shift' && (
+            <motion.div
+              className="absolute inset-0"
+              animate={{
+                background: [
+                  'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.2) 50%, rgba(251,146,60,0.2) 100%)',
+                  'linear-gradient(135deg, rgba(251,146,60,0.2) 0%, rgba(139,92,246,0.2) 50%, rgba(236,72,153,0.2) 100%)',
+                  'linear-gradient(135deg, rgba(236,72,153,0.2) 0%, rgba(251,146,60,0.2) 50%, rgba(139,92,246,0.2) 100%)',
+                  'linear-gradient(135deg, rgba(139,92,246,0.2) 0%, rgba(236,72,153,0.2) 50%, rgba(251,146,60,0.2) 100%)'
+                ]
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            />
+          )}
+          {pageThemeStyles.animated === 'northern-lights' && (
+            <>
+              <motion.div
+                className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-emerald-400/20 via-cyan-400/15 to-transparent"
+                animate={{ opacity: [0.3, 0.6, 0.3], x: [-20, 20, -20] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              />
+              <motion.div
+                className="absolute top-0 left-1/4 right-1/4 h-1/3 bg-gradient-to-b from-violet-400/25 via-fuchsia-400/15 to-transparent"
+                animate={{ opacity: [0.4, 0.7, 0.4], x: [20, -20, 20] }}
+                transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              />
+            </>
+          )}
+          {pageThemeStyles.animated === 'confetti-rain' && (
+            <>
+              {[...Array(20)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className={`absolute w-2 h-2 rounded-sm ${['bg-yellow-400', 'bg-pink-400', 'bg-cyan-400', 'bg-violet-400', 'bg-green-400'][i % 5]}`}
+                  initial={{ 
+                    x: `${5 + Math.random() * 90}%`, 
+                    y: '-5%', 
+                    rotate: 0,
+                    opacity: 0.8
+                  }}
+                  animate={{ 
+                    y: '105%', 
+                    rotate: 360,
+                    opacity: [0.8, 0.8, 0]
+                  }}
+                  transition={{ 
+                    duration: 5 + Math.random() * 3, 
+                    repeat: Infinity, 
+                    delay: Math.random() * 5,
+                    ease: "linear"
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
+      
+      {/* Floating Elements for Premium Themes */}
+      {pageThemeStyles.floatingElements && !pageThemeStyles.animated && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <motion.div
+            className={`absolute w-96 h-96 rounded-full blur-3xl opacity-20 ${pageThemeStyles.isDark ? 'bg-violet-500' : 'bg-violet-300'}`}
+            animate={{
+              x: [0, 50, 0],
+              y: [0, -30, 0],
+            }}
+            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+            style={{ top: '5%', left: '5%' }}
+          />
+          <motion.div
+            className={`absolute w-72 h-72 rounded-full blur-3xl opacity-20 ${pageThemeStyles.isDark ? 'bg-pink-500' : 'bg-pink-300'}`}
+            animate={{
+              x: [0, -30, 0],
+              y: [0, 40, 0],
+            }}
+            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+            style={{ bottom: '10%', right: '10%' }}
+          />
+          {pageThemeStyles.neonAccent && (
+            <motion.div
+              className="absolute w-32 h-1 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-500 blur-sm opacity-60"
+              animate={{ x: [-200, window.innerWidth || 1000], opacity: [0, 1, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", repeatDelay: 3 }}
+              style={{ top: '40%' }}
+            />
+          )}
+        </div>
+      )}
+      
+      {/* Luxury Accent Effects */}
+      {pageThemeStyles.luxuryAccent && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {pageThemeStyles.luxuryAccent === 'gold' && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-300/10 to-transparent"
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", repeatDelay: 3 }}
+            />
+          )}
+          {pageThemeStyles.luxuryAccent === 'rose' && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-300/10 to-transparent"
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", repeatDelay: 3 }}
+            />
+          )}
+          {pageThemeStyles.luxuryAccent === 'silver' && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-300/5 to-transparent"
+              animate={{ x: ['-100%', '200%'] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", repeatDelay: 2 }}
+            />
+          )}
+        </div>
+      )}
+      
+      {/* Card Glow Styles */}
+      {pageThemeStyles.cardGlow && (
+        <style>{`
+          .premium-card-glow {
+            box-shadow: 0 0 60px -15px ${pageThemeStyles.isDark ? 'rgba(139, 92, 246, 0.5)' : 'rgba(139, 92, 246, 0.25)'};
+          }
+        `}</style>
+      )}
+      
+      {/* Main Content */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
       <motion.div className="w-full max-w-md" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <AnimatePresence mode="wait">
           
           {/* STEP 1: WELCOME */}
           {step === 'welcome' && (
             <motion.div key="welcome" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-8">
                   <div className="text-center mb-8">
                     {space.logo_url ? (
@@ -588,7 +1038,7 @@ const SubmitTestimonial = ({ customSlug }) => {
           {/* STEP 2: VIDEO (Updated Back Button) */}
           {step === 'video' && (
             <motion.div key="video" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Button variant="ghost" size="icon" onClick={() => { stopCamera(); setStep('welcome'); setSubmissionError(null); }} className={themeClasses.textHeader}><ArrowLeft className="w-5 h-5" /></Button>
@@ -621,7 +1071,7 @@ const SubmitTestimonial = ({ customSlug }) => {
           {/* STEP 3: PHOTO (Updated Back Button) */}
           {step === 'photo' && (
             <motion.div key="photo" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-6">
                    <div className="flex items-center gap-2 mb-4">
                       <Button variant="ghost" size="icon" onClick={() => { setStep('welcome'); setSubmissionError(null); }} className={themeClasses.textHeader}><ArrowLeft className="w-5 h-5" /></Button>
@@ -682,7 +1132,7 @@ const SubmitTestimonial = ({ customSlug }) => {
           {/* STEP 4: TEXT (Updated Back Button & OnChange) */}
           {step === 'text' && (
             <motion.div key="text" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Button variant="ghost" size="icon" onClick={() => { setSubmissionError(null); setStep(testimonialType === 'photo' ? 'photo' : (testimonialType === 'video' ? 'video' : 'welcome')); }} className={themeClasses.textHeader}><ArrowLeft className="w-5 h-5" /></Button>
@@ -716,7 +1166,7 @@ const SubmitTestimonial = ({ customSlug }) => {
           {/* STEP 5: DETAILS (With Premium Validation) */}
           {step === 'details' && (
             <motion.div key="details" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 mb-6">
                     <Button variant="ghost" size="icon" onClick={() => setStep('text')} className={themeClasses.textHeader}><ArrowLeft className="w-5 h-5" /></Button>
@@ -800,7 +1250,7 @@ const SubmitTestimonial = ({ customSlug }) => {
           {/* STEP 6: UPLOADING */}
           {step === 'uploading' && (
             <motion.div key="uploading" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-8 text-center">
                   <Upload className={`w-12 h-12 mx-auto mb-4 animate-bounce ${formSettings.theme_config.accentColor === 'custom' ? 'text-black dark:text-white' : 'text-violet-600'}`} />
                   <h2 className={`text-lg font-semibold mb-2 ${themeClasses.textHeader}`}>Uploading...</h2>
@@ -814,14 +1264,32 @@ const SubmitTestimonial = ({ customSlug }) => {
           {/* STEP 7: SUCCESS */}
           {step === 'success' && (
             <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
-              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card}`}>
+              <Card className={`overflow-hidden shadow-xl border-0 ${themeClasses.card} ${pageThemeStyles.cardGlow ? 'premium-card-glow' : ''}`}>
                 <CardContent className="p-8 text-center">
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.2 }}><CheckCircle className="w-16 h-16 mx-auto text-green-500 mb-4" /></motion.div>
                   <h2 className={`text-2xl font-bold mb-2 ${themeClasses.textHeader}`}>{formSettings.thank_you_title}</h2>
                   <p className={`mb-6 ${themeClasses.textMuted}`}>{formSettings.thank_you_message}</p>
+                  
+                  {/* Promo/Redirect Section - Custom link replaces default if set */}
                   <div className="p-4 bg-violet-50 dark:bg-violet-900/20 rounded-lg">
-                    <p className="text-sm text-slate-700 dark:text-slate-300">Want to collect testimonials like this?</p>
-                    <a href="/" target="_blank" rel="noopener noreferrer" className="text-violet-600 font-medium hover:underline">Create your own Wall of Love →</a>
+                    {formSettings.extra_settings?.thank_you_url ? (
+                      /* Custom Thank You Redirect - PRO Feature */
+                      <a 
+                        href={formSettings.extra_settings.thank_you_url}
+                        target="_blank"
+                        rel="noopener noreferrer" 
+                        className="text-violet-600 font-medium hover:underline inline-flex items-center gap-1"
+                      >
+                        {formSettings.extra_settings?.thank_you_link_text || 'Continue'}
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    ) : (
+                      /* Default TrustFlow Promo */
+                      <>
+                        <p className="text-sm text-slate-700 dark:text-slate-300">Want to collect testimonials like this?</p>
+                        <a href="/" target="_blank" rel="noopener noreferrer" className="text-violet-600 font-medium hover:underline">Create your own Wall of Love →</a>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -829,10 +1297,15 @@ const SubmitTestimonial = ({ customSlug }) => {
           )}
 
         </AnimatePresence>
-        <div className="text-center mt-6">
-          <a href="/" target="_blank" rel="noopener noreferrer" className={`text-sm hover:underline transition-colors ${themeClasses.textMuted}`}>Powered by <span className="font-medium text-violet-600">TrustFlow</span></a>
-        </div>
+        
+        {/* Footer - Respects hide_branding */}
+        {!formSettings.extra_settings?.hide_branding && (
+          <div className="text-center mt-6">
+            <a href="/" target="_blank" rel="noopener noreferrer" className={`text-sm hover:underline transition-colors ${themeClasses.textMuted}`}>Powered by <span className="font-medium text-violet-600">TrustFlow</span></a>
+          </div>
+        )}
       </motion.div>
+      </div>
     </div>
   );
 };
