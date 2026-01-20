@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -34,6 +35,41 @@ const SpaceOverview = () => {
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [activeTab, setActiveTab] = useState('inbox');
   const navigate = useNavigate();
+
+  // --- HEADER SCROLL STATE ---
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const scrollContainerRef = useRef(null);
+
+  // Scroll handler for header visibility
+  const handleScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    const currentScrollY = container.scrollTop;
+    const scrollThreshold = 50; // Minimum scroll before hiding
+    
+    if (currentScrollY < scrollThreshold) {
+      // Always show header when near top
+      setIsHeaderVisible(true);
+    } else if (currentScrollY > lastScrollY) {
+      // Scrolling down - hide header
+      setIsHeaderVisible(false);
+    } else {
+      // Scrolling up - show header
+      setIsHeaderVisible(true);
+    }
+    
+    setLastScrollY(currentScrollY);
+  }, [lastScrollY]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   // --- DEFAULTS ---
   const DEFAULT_THEME_CONFIG = {
@@ -314,42 +350,72 @@ const SpaceOverview = () => {
 
   return (
     // UPDATED: Added MASTER KEY classes to hide scrollbars for ALL children ([&_*...])
-    <div className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
+    <div 
+      ref={scrollContainerRef}
+      className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
       [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] 
       [&_*::-webkit-scrollbar]:hidden [&_*]:[scrollbar-width:none] [&_*]:[-ms-overflow-style:none]">
       
       <Toaster richColors position="bottom-right" />
 
-      {/* --- HEADER (MOBILE OPTIMIZED) --- */}
-      <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 md:justify-between">
+      {/* --- PREMIUM ANIMATED HEADER --- */}
+      <motion.header 
+        initial={{ y: 0 }}
+        animate={{ 
+          y: isHeaderVisible ? 0 : -100,
+          opacity: isHeaderVisible ? 1 : 0
+        }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 300, 
+          damping: 30,
+          duration: 0.3
+        }}
+        className="border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur-md sticky top-0 z-50 shadow-sm"
+      >
+        <div className="container mx-auto px-4 py-3 md:py-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4 md:justify-between">
             
             {/* Left: Back Btn + Title */}
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate('/dashboard')}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="shrink-0 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors" 
+                onClick={() => navigate('/dashboard')}
+              >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex-1 min-w-0">
-                <h1 className="text-lg md:text-xl font-bold truncate">{space.space_name}</h1>
+                <h1 className="text-lg md:text-xl font-bold truncate bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  {space.space_name}
+                </h1>
                 <p className="text-xs md:text-sm text-muted-foreground truncate">/{space.slug}</p>
               </div>
             </div>
 
             {/* Right: Actions (Full width on mobile) */}
-            <div className="flex gap-2 w-full md:w-auto mt-2 md:mt-0">
-              <Button variant="outline" className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10" onClick={copySubmitLink}>
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button 
+                variant="outline" 
+                className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10 border-gray-200 hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all" 
+                onClick={copySubmitLink}
+              >
                 <Copy className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                 Copy Link
               </Button>
-              <Button variant="outline" className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10" onClick={() => window.open(`/submit/${space.slug}`, '_blank')}>
+              <Button 
+                variant="outline" 
+                className="flex-1 md:flex-none text-xs md:text-sm h-9 md:h-10 border-gray-200 hover:border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all" 
+                onClick={() => window.open(`/submit/${space.slug}`, '_blank')}
+              >
                 <ExternalLink className="w-3 h-3 md:w-4 md:h-4 mr-2" />
                 Preview Form
               </Button>
             </div>
           </div>
         </div>
-      </header>
+      </motion.header>
 
       <main className="container mx-auto px-4 py-4 md:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -486,13 +486,9 @@ const EditFormTab = ({
     }
   ];
 
-  // === PAGE THEME BACKGROUND COMPONENT ===
-  const PageThemeBackground = ({ themeId, children }) => {
-    const currentTheme = PAGE_THEMES.find(t => t.id === themeId) || PAGE_THEMES[0];
-    const { background, pattern, overlay, floatingElements, isDark, neonAccent, animated, interactive, glass, luxuryAccent } = currentTheme.styles;
-
-    // CSS for patterns
-    const patternStyles = {
+  // === PAGE THEME BACKGROUND COMPONENT (Memoized to prevent re-renders) ===
+  const PageThemeBackground = useMemo(() => {
+    const PatternStyles = {
       'aurora-waves': `
         background-image: 
           radial-gradient(ellipse 80% 50% at 50% -20%, rgba(120, 119, 198, 0.3), transparent),
@@ -582,6 +578,12 @@ const EditFormTab = ({
         background-size: 30px 30px;
       `
     };
+
+    // Return a stable component reference
+    return memo(({ themeId, children }) => {
+      const currentTheme = PAGE_THEMES.find(t => t.id === themeId) || PAGE_THEMES[0];
+      const { background, pattern, overlay, floatingElements, isDark, neonAccent, animated, glass, luxuryAccent } = currentTheme.styles;
+      const patternStyles = PatternStyles;
 
     return (
       <div className={`relative w-full h-full overflow-hidden ${background}`}>
@@ -801,7 +803,8 @@ const EditFormTab = ({
         </div>
       </div>
     );
-  };
+  });
+  }, []); // Empty dependency array - pattern styles are static
 
   // Get current page theme
   const getCurrentPageTheme = () => {
@@ -863,18 +866,19 @@ const EditFormTab = ({
     };
   };
 
-  const getButtonStyle = () => {
+  // Memoize button styles to prevent recalculation
+  const getButtonStyle = useCallback(() => {
     if (themeConfig.accentColor === 'custom') return { background: themeConfig.customColor, color: '#fff' };
     return {}; 
-  };
+  }, [themeConfig.accentColor, themeConfig.customColor]);
   
-  const getButtonClass = () => {
+  const getButtonClass = useCallback(() => {
     if (themeConfig.accentColor === 'custom') return `w-full shadow-md hover:opacity-90 transition-opacity text-white`;
     return `w-full shadow-md bg-gradient-to-r ${accentColors[themeConfig.accentColor]} hover:opacity-90 transition-opacity text-white`;
-  };
+  }, [themeConfig.accentColor]);
 
   // 1. FULL RESET (Used by "Reset Default" button) - Resets Theme AND Preview
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setPreviewStep('welcome');
     setMockText('');
     setMockRating(5);
@@ -886,10 +890,10 @@ const EditFormTab = ({
         ...DEFAULT_THEME_CONFIG,
         viewMode: themeConfig.viewMode 
     });
-  };
+  }, [themeConfig.viewMode]);
 
   // 2. PREVIEW RESTART (Used by "Submit Another") - Resets ONLY Preview, KEEPS Theme
-  const restartPreview = () => {
+  const restartPreview = useCallback(() => {
     setPreviewStep('welcome');
     setMockText('');
     setMockRating(5);
@@ -897,7 +901,7 @@ const EditFormTab = ({
     setIsCameraOpen(false);
     setFlowMode('text');
     // NOTE: We do NOT touch themeConfig here.
-  };
+  }, []);
 
   const handleLogoUpload = (e) => {
     const file = e.target.files[0];
@@ -968,10 +972,11 @@ const EditFormTab = ({
   const closeCamera = () => setIsCameraOpen(false);
   const removeMockPhoto = () => setMockPhoto(null);
 
-  const themeClasses = getThemeClasses();
+  // Memoize themeClasses to prevent recalculation on every render
+  const themeClasses = useMemo(() => getThemeClasses(), [themeConfig.theme]);
 
-  // --- Reusable Logo Component with Fallback & Fixed Color ---
-  const FormLogo = () => (
+  // --- Reusable Logo Component with Fallback & Fixed Color (Memoized) ---
+  const FormLogo = useMemo(() => () => (
     <div className="flex justify-center mb-6">
       {logoPreview && !imageError ? (
           <img 
@@ -987,7 +992,7 @@ const EditFormTab = ({
           </div>
       )}
     </div>
-  );
+  ), [logoPreview, imageError]);
 
   // Theme Button Component with Lock logic
   const ThemeButton = ({ theme, isSelected, isLocked, onSelect }) => {
@@ -1098,7 +1103,6 @@ const EditFormTab = ({
         {/* Canvas Area - DEVICE FRAMES */}
         <div className="flex-1 overflow-hidden flex items-center justify-center bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] p-2 sm:p-4">
            <motion.div 
-             layout
              initial={false}
              animate={{ 
                width: themeConfig.viewMode === 'desktop' ? '100%' : (themeConfig.viewMode === 'tablet' ? '768px' : '375px'),
@@ -1106,7 +1110,7 @@ const EditFormTab = ({
                borderRadius: themeConfig.viewMode === 'mobile' ? '40px' : (themeConfig.viewMode === 'tablet' ? '24px' : '12px'),
              }}
              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-             className={`relative shadow-2xl transition-all duration-500 overflow-hidden flex flex-col
+             className={`relative shadow-2xl overflow-hidden flex flex-col
                ${themeConfig.viewMode === 'desktop' ? 'bg-slate-100 border border-slate-300 rounded-lg' : 'bg-slate-900 border-[8px] border-slate-900'}
                ${themeConfig.viewMode === 'mobile' ? 'max-w-[375px]' : themeConfig.viewMode === 'tablet' ? 'max-w-[768px]' : 'max-w-full'}
              `}

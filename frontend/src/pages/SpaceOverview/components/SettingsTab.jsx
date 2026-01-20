@@ -1321,7 +1321,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 px-2 sm:px-0">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 px-2 sm:px-0 overflow-x-hidden w-full box-border">
       
       <NotificationToast message={notification.message} type={notification.type} isVisible={notification.isVisible} />
 
@@ -1370,17 +1370,18 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             
             <div className="grid gap-2">
               <Label htmlFor="spaceSlug">Space URL (Slug)</Label>
-              <div className="relative max-w-sm">
-                <div className="flex items-center">
-                  <Badge variant="outline" className="text-muted-foreground font-normal bg-gray-100 dark:bg-gray-800 h-10 px-3 rounded-r-none border-r-0 border-gray-200 dark:border-gray-700 hidden sm:flex">
+              <div className="relative w-full max-w-full sm:max-w-sm">
+                <div className="flex items-center w-full">
+                  <Badge variant="outline" className="text-muted-foreground font-normal bg-gray-100 dark:bg-gray-800 h-10 px-3 rounded-r-none border-r-0 border-gray-200 dark:border-gray-700 hidden sm:flex flex-shrink-0 whitespace-nowrap">
                     trustflow.app/submit/
                   </Badge>
-                  <div className="relative flex-1">
+                  <div className="relative flex-1 min-w-0">
                     <Input 
                         id="spaceSlug" 
                         value={spaceSlug} 
                         onChange={(e) => setSpaceSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-                        className={`sm:rounded-l-none pr-10 bg-white dark:bg-gray-950 transition-colors duration-200 ${getSlugInputClass()}`}
+                        placeholder="your-space-slug"
+                        className={`sm:rounded-l-none pr-10 bg-white dark:bg-gray-950 transition-colors duration-200 w-full ${getSlugInputClass()}`}
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                         {slugStatus === 'checking' && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
@@ -1408,21 +1409,19 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
         </Card>
 
         {/* 1.5 CUSTOM DOMAIN (Pro Feature) */}
-        <FeatureGate featureKey="advanced.custom_domains">
+        <FeatureGate featureKey="advanced.custom_domains" showBadge={false}>
           <Card className="border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
-                    <Link2 className="w-5 h-5 text-violet-600" />
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-violet-100 dark:bg-violet-900/20 rounded-lg flex-shrink-0">
+                  <Link2 className="w-5 h-5 text-violet-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CardTitle className="text-lg">Custom Domain</CardTitle>
+                    <FeatureIndicator featureKey="advanced.custom_domains" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">Custom Domain</CardTitle>
-                      <FeatureIndicator featureKey="advanced.custom_domains" />
-                    </div>
-                    <CardDescription>Connect your own domain for a branded experience.</CardDescription>
-                  </div>
+                  <CardDescription>Connect your own domain for a branded experience.</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -1435,9 +1434,9 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
             ) : customDomain ? (
               // Domain is configured - show status
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white dark:bg-gray-950 rounded-xl border border-gray-200 dark:border-gray-800">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${
                       customDomain.status === 'active' 
                         ? 'bg-green-100 dark:bg-green-900/30' 
                         : customDomain.status === 'dns_verified' 
@@ -1460,8 +1459,8 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                         <AlertCircle className="w-5 h-5 text-red-600" />
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">{customDomain.domain}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 dark:text-white truncate">{customDomain.domain}</p>
                       <p className={`text-xs font-medium ${
                         customDomain.status === 'active' 
                           ? 'text-green-600' 
@@ -1481,7 +1480,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                     {(customDomain.status !== 'active' && customDomain.status !== 'dns_verified') && (
                       <Button 
                         variant="outline" 
@@ -1577,29 +1576,31 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                                 </p>
                                 
                                 {/* DNS Values Table */}
-                                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-                                  <div className="grid grid-cols-[100px_1fr_40px] items-center p-3 border-b border-gray-200 dark:border-gray-800">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase">Type</span>
-                                    <span className="font-mono text-sm font-semibold text-gray-900 dark:text-white">CNAME</span>
-                                    <span></span>
-                                  </div>
-                                  <div className="grid grid-cols-[100px_1fr_40px] items-center p-3 border-b border-gray-200 dark:border-gray-800">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase">Name</span>
-                                    <span className="font-mono text-sm font-semibold text-violet-600 dark:text-violet-400 break-all">
-                                      {customDomain.domain.split('.')[0]}
-                                    </span>
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard(customDomain.domain.split('.')[0])}>
-                                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                                    </Button>
-                                  </div>
-                                  <div className="grid grid-cols-[100px_1fr_40px] items-center p-3">
-                                    <span className="text-xs font-medium text-muted-foreground uppercase">Target</span>
-                                    <span className="font-mono text-sm font-semibold text-green-600 dark:text-green-400 break-all">
-                                      cname.vercel-dns.com
-                                    </span>
-                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyToClipboard('cname.vercel-dns.com')}>
-                                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                                    </Button>
+                                <div className="overflow-x-auto -mx-1 hide-scrollbar">
+                                  <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden min-w-[260px]">
+                                    <div className="grid grid-cols-[80px_1fr_36px] sm:grid-cols-[100px_1fr_40px] items-center p-2.5 sm:p-3 border-b border-gray-200 dark:border-gray-800">
+                                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">Type</span>
+                                      <span className="font-mono text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">CNAME</span>
+                                      <span></span>
+                                    </div>
+                                    <div className="grid grid-cols-[80px_1fr_36px] sm:grid-cols-[100px_1fr_40px] items-center p-2.5 sm:p-3 border-b border-gray-200 dark:border-gray-800">
+                                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">Name</span>
+                                      <span className="font-mono text-xs sm:text-sm font-semibold text-violet-600 dark:text-violet-400 break-all">
+                                        {customDomain.domain.split('.')[0]}
+                                      </span>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-7 sm:w-7 p-0" onClick={() => copyToClipboard(customDomain.domain.split('.')[0])}>
+                                        <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
+                                      </Button>
+                                    </div>
+                                    <div className="grid grid-cols-[80px_1fr_36px] sm:grid-cols-[100px_1fr_40px] items-center p-2.5 sm:p-3">
+                                      <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase">Target</span>
+                                      <span className="font-mono text-xs sm:text-sm font-semibold text-green-600 dark:text-green-400 break-all">
+                                        cname.vercel-dns.com
+                                      </span>
+                                      <Button variant="ghost" size="sm" className="h-6 w-6 sm:h-7 sm:w-7 p-0" onClick={() => copyToClipboard('cname.vercel-dns.com')}>
+                                        <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-muted-foreground" />
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -1702,10 +1703,18 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
 
         {/* 2. NOTIFICATIONS & EXPORT (Same as before) */}
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="border-gray-200 dark:border-gray-800 shadow-sm flex flex-col">
+          <Card className="border-gray-200 dark:border-gray-800 shadow-sm flex flex-col relative overflow-hidden">
+            {/* Under Maintenance Overlay */}
+            <div className="absolute inset-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center">
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full mb-3">
+                <AlertTriangle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Under Maintenance</p>
+              <p className="text-xs text-muted-foreground mt-1">Coming soon</p>
+            </div>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg"><Mail className="w-5 h-5 text-blue-600" /></div>
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex-shrink-0"><Mail className="w-5 h-5 text-blue-600" /></div>
                 <CardTitle className="text-lg">Notifications</CardTitle>
               </div>
             </CardHeader>
@@ -1724,10 +1733,12 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
           <FeatureGate featureKey="advanced.export_data" showBadge={false}>
           <Card className="border-gray-200 dark:border-gray-800 shadow-sm flex flex-col">
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg"><Download className="w-5 h-5 text-green-600" /></div>
-                <CardTitle className="text-lg">Export Data</CardTitle>
-                <FeatureIndicator featureKey="advanced.export_data" />
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg flex-shrink-0"><Download className="w-5 h-5 text-green-600" /></div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="text-lg">Export Data</CardTitle>
+                  <FeatureIndicator featureKey="advanced.export_data" />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="flex-1">
@@ -1741,18 +1752,18 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
           </FeatureGate>
         </div>
 
-        {/* 2.5 WEBHOOKS & AUTOMATION */}
-        <FeatureGate featureKey="advanced.webhooks">
+        {/* 2.5 WEBHOOKS */}
+        <FeatureGate featureKey="advanced.webhooks" showBadge={false}>
         <Card className="border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 rounded-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="p-2 bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 rounded-lg flex-shrink-0">
                   <Webhook className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">Webhooks & Automation</CardTitle>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CardTitle className="text-lg">Webhooks</CardTitle>
                     <FeatureIndicator featureKey="advanced.webhooks" />
                   </div>
                   <CardDescription>Send real-time notifications to Zapier, Slack, or any webhook endpoint.</CardDescription>
@@ -1764,6 +1775,7 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
+                  className="flex-shrink-0"
                 >
                   <Button
                     onClick={() => setShowAddWebhookForm(true)}
@@ -2020,9 +2032,9 @@ const SettingsTab = ({ space, spaceId, navigate, deleteSpace, updateSpaceState, 
         {/* 3. DANGER ZONE (Updated to use Confirm Action) */}
         <Card className="border-red-200 dark:border-red-900/50 bg-red-50/30 dark:bg-red-900/10 shadow-sm">
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-              <div>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg flex-shrink-0"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+              <div className="min-w-0">
                 <CardTitle className="text-lg text-red-700 dark:text-red-400">Danger Zone</CardTitle>
                 <CardDescription>Irreversible actions for this space.</CardDescription>
               </div>

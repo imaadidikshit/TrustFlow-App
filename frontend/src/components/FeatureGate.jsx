@@ -287,7 +287,7 @@ export const FeatureGate = ({
   }, []);
 
   if (isLoading) {
-    return <div className={cn("opacity-60", className)}>{children}</div>;
+    return <div className={cn("opacity-60 w-full", className)}>{children}</div>;
   }
   
   if (isAllowed) {
@@ -298,7 +298,7 @@ export const FeatureGate = ({
   if (fallback) {
     return (
       <>
-        <div onClick={handleLockedClick} className="cursor-pointer">{fallback}</div>
+        <div onClick={handleLockedClick} className="cursor-pointer w-full">{fallback}</div>
         <UpgradeBanner open={showModal} onOpenChange={setShowModal} featureKey={featureKey} />
       </>
     );
@@ -308,10 +308,10 @@ export const FeatureGate = ({
   return (
     <>
       <div 
-        className={cn("relative cursor-pointer group", className)} 
+        className={cn("relative cursor-pointer group w-full overflow-hidden", className)} 
         onClick={handleLockedClick}
       >
-        <div className="opacity-50 pointer-events-none select-none transition-opacity group-hover:opacity-40">
+        <div className="opacity-50 pointer-events-none select-none transition-opacity group-hover:opacity-40 w-full">
           {children}
         </div>
         {showBadge && (
@@ -381,15 +381,16 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideCloseButton className="sm:max-w-2xl p-0 overflow-hidden border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-2xl">
+      <DialogContent hideCloseButton className="sm:max-w-2xl max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-2xl max-h-[90vh] overflow-y-auto hide-scrollbar">
         {/* Animated gradient header */}
-        <div className="relative px-8 pt-8 pb-6 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 overflow-hidden">
-          {/* Close button on header */}
+        <div className="relative px-4 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-6 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 overflow-hidden">
+          {/* Close button on header - always visible with higher z-index */}
           <button 
             onClick={() => onOpenChange(false)}
-            className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 p-2.5 sm:p-2 rounded-full bg-white/30 hover:bg-white/40 transition-colors backdrop-blur-sm shadow-lg"
+            aria-label="Close"
           >
-            <X className="w-4 h-4 text-white" />
+            <X className="w-5 h-5 sm:w-4 sm:h-4 text-white" />
           </button>
           
           {/* Animated background elements */}
@@ -411,21 +412,21 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
           />
           
           {/* Header content */}
-          <div className="relative z-10 text-center">
+          <div className="relative z-10 text-center pr-8 sm:pr-0">
             <motion.div 
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl mb-5"
+              className="inline-flex items-center justify-center w-14 h-14 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-sm shadow-xl mb-3 sm:mb-5"
             >
-              <span className="text-4xl">{featureInfo.icon}</span>
+              <span className="text-2xl sm:text-4xl">{featureInfo.icon}</span>
             </motion.div>
             
             <motion.h2 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-2xl font-bold text-white mb-2"
+              className="text-lg sm:text-2xl font-bold text-white mb-1 sm:mb-2"
             >
               Unlock {featureInfo.title}
             </motion.h2>
@@ -434,7 +435,7 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-white/80 max-w-md mx-auto"
+              className="text-sm sm:text-base text-white/80 max-w-md mx-auto"
             >
               {featureInfo.description}
             </motion.p>
@@ -444,14 +445,14 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="flex flex-wrap justify-center gap-2 mt-4"
+              className="flex flex-wrap justify-center gap-1.5 sm:gap-2 mt-3 sm:mt-4"
             >
               {featureInfo.benefits?.map((benefit, i) => (
                 <Badge 
                   key={i}
-                  className="bg-white/20 text-white border-white/20 backdrop-blur-sm"
+                  className="bg-white/20 text-white border-white/20 backdrop-blur-sm text-[10px] sm:text-xs px-1.5 sm:px-2"
                 >
-                  <Check className="w-3 h-3 mr-1" />
+                  <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                   {benefit}
                 </Badge>
               ))}
@@ -460,9 +461,9 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
         </div>
         
         {/* Plans Grid */}
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className={cn(
-            "grid gap-4",
+            "grid gap-3 sm:gap-4",
             isFreeUser ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"
           )}>
             {/* Starter Plan - Show for free users or when required */}
@@ -493,11 +494,14 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="mt-6 text-center"
+            className="mt-4 sm:mt-6 text-center"
           >
-            <p className="text-xs text-slate-400 flex items-center justify-center gap-2">
-              <Shield className="w-3.5 h-3.5" />
-              30-day money-back guarantee • Cancel anytime • Secure payment
+            <p className="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
+              <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>30-day money-back</span>
+              <span className="hidden xs:inline">•</span>
+              <span className="hidden xs:inline">Cancel anytime</span>
+              <span className="xs:hidden">• Cancel anytime</span>
             </p>
           </motion.div>
         </div>
@@ -565,7 +569,7 @@ const PlanCard = ({ plan, isRecommended, onSelect, isHovered, onHover }) => {
       onMouseEnter={() => onHover?.(plan.id)}
       onMouseLeave={() => onHover?.(null)}
       className={cn(
-        "relative p-5 rounded-2xl border-2 cursor-pointer transition-all duration-300",
+        "relative p-4 sm:p-5 rounded-xl sm:rounded-2xl border-2 cursor-pointer transition-all duration-300",
         isRecommended 
           ? `bg-gradient-to-br ${config.bgGradient} ${config.borderColor} shadow-lg`
           : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -574,55 +578,55 @@ const PlanCard = ({ plan, isRecommended, onSelect, isHovered, onHover }) => {
     >
       {/* Recommended Badge */}
       {isRecommended && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+        <div className="absolute -top-2.5 sm:-top-3 left-1/2 -translate-x-1/2">
           <Badge className={cn(
-            "px-3 py-1 text-[10px] font-bold uppercase tracking-wider border-0 shadow-lg",
+            "px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider border-0 shadow-lg",
             `bg-gradient-to-r ${config.gradient} text-white`
           )}>
-            <Star className="w-3 h-3 mr-1 fill-current" />
+            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1 fill-current" />
             Recommended
           </Badge>
         </div>
       )}
       
       {/* Plan Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <div className={cn(
-            "w-12 h-12 rounded-xl flex items-center justify-center shadow-lg",
+            "w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg",
             `bg-gradient-to-br ${config.gradient}`
           )}>
-            <IconComponent className="w-6 h-6 text-white" />
+            <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
           <div>
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">{plan.name}</h3>
+            <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">{plan.name}</h3>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-slate-900 dark:text-white">
+              <span className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                 {formatPrice(plan.amount_usd, isIndia ? 'inr' : 'usd')}
               </span>
-              <span className="text-sm text-slate-500 dark:text-slate-400">/month</span>
+              <span className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">/month</span>
             </div>
           </div>
         </div>
       </div>
       
       {/* Features List */}
-      <div className="space-y-2.5 mb-5">
+      <div className="space-y-2 sm:space-y-2.5 mb-4 sm:mb-5">
         {config.features.map((feature, i) => (
           <motion.div 
             key={i}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 + i * 0.05 }}
-            className="flex items-center gap-2.5"
+            className="flex items-center gap-2 sm:gap-2.5"
           >
             <div className={cn(
-              "w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0",
+              "w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center flex-shrink-0",
               `bg-gradient-to-r ${config.gradient}`
             )}>
-              <Check className="w-3 h-3 text-white" />
+              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
             </div>
-            <span className="text-sm text-slate-600 dark:text-slate-300">{feature}</span>
+            <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">{feature}</span>
           </motion.div>
         ))}
       </div>
@@ -630,14 +634,14 @@ const PlanCard = ({ plan, isRecommended, onSelect, isHovered, onHover }) => {
       {/* CTA Button */}
       <Button 
         className={cn(
-          "w-full h-12 font-semibold text-white shadow-lg transition-all group",
+          "w-full h-10 sm:h-12 font-semibold text-white shadow-lg transition-all group text-sm sm:text-base",
           `bg-gradient-to-r ${config.gradient}`,
           "hover:shadow-xl hover:brightness-110"
         )}
       >
-        <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+        <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 group-hover:rotate-12 transition-transform" />
         Upgrade to {plan.name}
-        <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+        <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1.5 sm:ml-2 group-hover:translate-x-1 transition-transform" />
       </Button>
     </motion.div>
   );
