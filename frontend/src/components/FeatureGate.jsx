@@ -287,7 +287,7 @@ export const FeatureGate = ({
   }, []);
 
   if (isLoading) {
-    return <div className={cn("opacity-60 w-full", className)}>{children}</div>;
+    return <div className={cn("opacity-60", className)}>{children}</div>;
   }
   
   if (isAllowed) {
@@ -298,7 +298,7 @@ export const FeatureGate = ({
   if (fallback) {
     return (
       <>
-        <div onClick={handleLockedClick} className="cursor-pointer w-full">{fallback}</div>
+        <div onClick={handleLockedClick} className="cursor-pointer">{fallback}</div>
         <UpgradeBanner open={showModal} onOpenChange={setShowModal} featureKey={featureKey} />
       </>
     );
@@ -308,10 +308,10 @@ export const FeatureGate = ({
   return (
     <>
       <div 
-        className={cn("relative cursor-pointer group w-full overflow-hidden", className)} 
+        className={cn("relative cursor-pointer group", className)} 
         onClick={handleLockedClick}
       >
-        <div className="opacity-50 pointer-events-none select-none transition-opacity group-hover:opacity-40 w-full">
+        <div className="opacity-50 pointer-events-none select-none transition-opacity group-hover:opacity-40">
           {children}
         </div>
         {showBadge && (
@@ -381,7 +381,7 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideCloseButton className="sm:max-w-2xl max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-2xl max-h-[90vh] overflow-y-auto hide-scrollbar">
+      <DialogContent hideCloseButton className="sm:max-w-2xl max-w-[95vw] p-0 overflow-hidden border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-2xl max-h-[90vh] overflow-y-auto">
         {/* Animated gradient header */}
         <div className="relative px-4 sm:px-8 pt-6 sm:pt-8 pb-5 sm:pb-6 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 overflow-hidden">
           {/* Close button on header - always visible with higher z-index */}
@@ -498,7 +498,7 @@ export const UpgradeBanner = ({ open, onOpenChange, featureKey }) => {
           >
             <p className="text-[10px] sm:text-xs text-slate-400 flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
               <Shield className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-              <span>30-day money-back</span>
+              <span>3-day money-back</span>
               <span className="hidden xs:inline">•</span>
               <span className="hidden xs:inline">Cancel anytime</span>
               <span className="xs:hidden">• Cancel anytime</span>

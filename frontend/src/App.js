@@ -5,7 +5,7 @@ import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { Toaster } from "@/components/ui/toaster";
 
 // Pages
-import Landing from "@/pages/Landing";
+import Landing from "@/pages/NewLanding";
 import Login from "@/pages/Login";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
@@ -14,6 +14,18 @@ import SubmitTestimonial from "@/pages/SubmitTestimonial";
 import WallOfLove from "@/pages/WallOfLove";
 import ForgotPassword from "./pages/ForgotPassword";
 import Pricing from "@/pages/Pricing";
+
+// Marketing Pages
+import Features from "@/pages/Features";
+import PublicWallOfLove from "@/pages/PublicWallOfLove";
+import Demo from "@/pages/Demo";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
+import TermsOfService from "@/pages/TermsOfService";
+import About from "@/pages/About";
+import ReportBug from "@/pages/ReportBug";
+import SuggestFeature from "@/pages/SuggestFeature";
+import SubmitPublicTestimonial from "@/pages/SubmitPublicTestimonial";
+import PublicPricing from "@/pages/PublicPricing";
 
 // List of known TrustFlow domains (add your production domains here)
 const KNOWN_DOMAINS = [
@@ -162,6 +174,18 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword/>}/>
       <Route path="/signup" element={<Signup />} />
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/public-pricing" element={<PublicPricing />} />
+
+      {/* Marketing Pages */}
+      <Route path="/features" element={<Features />} />
+      <Route path="/wall-of-love" element={<PublicWallOfLove />} />
+      <Route path="/demo" element={<Demo />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/report-bug" element={<ReportBug />} />
+      <Route path="/suggest-feature" element={<SuggestFeature />} />
+      <Route path="/submit-testimonial" element={<SubmitPublicTestimonial />} />
 
       
       {/* Public Submission Portal */}

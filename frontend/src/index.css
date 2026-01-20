@@ -123,6 +123,27 @@ code {
   display: none;  /* Chrome, Safari and Opera */
 }
 
+/* Hide scrollbars on mobile devices */
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+  /* Ensure horizontal scrollbars are hidden in all containers on mobile */
+  .overflow-x-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* Custom scrollbar styling */
 .custom-scrollbar {
   scrollbar-width: thin;

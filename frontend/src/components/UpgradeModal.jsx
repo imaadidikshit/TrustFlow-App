@@ -351,7 +351,7 @@ export const UpgradeModal = ({
           {/* Trust Badge */}
           <p className="text-center text-xs text-slate-400 dark:text-slate-500 mt-4">
             <Shield className="w-3 h-3 inline mr-1" />
-            30-day money-back guarantee • Cancel anytime
+            3-day money-back guarantee • Cancel anytime
           </p>
         </div>
       </DialogContent>

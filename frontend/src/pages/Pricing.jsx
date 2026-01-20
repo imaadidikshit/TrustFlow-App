@@ -25,6 +25,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlanCheck } from '@/hooks/useFeature';
 import { fetchAllPlans } from '@/contexts/SubscriptionContext';
+import { MarketingLayout } from '@/components/marketing';
 import confetti from 'canvas-confetti';
 
 /**
@@ -68,7 +69,6 @@ const FEATURE_COMPARISON = [
       { name: 'Spaces', free: '1', starter: '3', pro: '10' },
       { name: 'Text Testimonials', free: '10', starter: '500', pro: 'Unlimited' },
       { name: 'Video Testimonials', free: '0', starter: '20', pro: '100' },
-      { name: 'Custom Questions', free: true, starter: true, pro: true },
       { name: 'Video Recording', free: false, starter: true, pro: true }
     ]
   },
@@ -100,7 +100,6 @@ const FEATURE_COMPARISON = [
     features: [
       { name: 'Custom Domains', free: false, starter: false, pro: true },
       { name: 'Webhooks', free: false, starter: false, pro: true },
-      { name: 'API Access', free: false, starter: false, pro: true },
       { name: 'Priority Support', free: false, starter: false, pro: true },
       { name: 'White-label Reports', free: false, starter: false, pro: true }
     ]
@@ -121,7 +120,7 @@ const FAQS = [
   },
   {
     q: 'Do you offer refunds?',
-    a: 'Yes, we offer a 30-day money-back guarantee. If you\'re not satisfied, contact us within 30 days for a full refund.'
+    a: 'Yes, we offer a 3-day money-back guarantee. If you\'re not satisfied, contact us within 3 days for a full refund.'
   },
   {
     q: 'Is there a discount for yearly billing?',
@@ -285,60 +284,29 @@ const PricingPage = () => {
   const isLoading = loading || planLoading;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
-            </button>
-            
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-                <Star className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-xl bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">TrustFlow</span>
-            </div>
-            
-            {user ? (
-              <Button variant="outline" size="sm" onClick={() => navigate('/dashboard')}>
-                Dashboard
-              </Button>
-            ) : (
-              <Button size="sm" onClick={() => navigate('/login')}>
-                Sign In
-              </Button>
-            )}
+    <MarketingLayout>
+      <div className="min-h-screen">
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-violet-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        </div>
-      </nav>
+        )}
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-4 border-violet-600 border-t-transparent rounded-full animate-spin" />
-        </div>
-      )}
-
-      {/* Hero Section */}
-      <section className="pt-16 pb-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Badge className="mb-4 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border-0">
-              <Sparkles className="w-3 h-3 mr-1" />
-              Simple, Transparent Pricing
-            </Badge>
-            
-            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+        {/* Hero Section */}
+        <section className="pt-8 md:pt-12 pb-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Badge className="mb-4 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border-0">
+                <Sparkles className="w-3 h-3 mr-1" />
+                Simple, Transparent Pricing
+              </Badge>
+              
+              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white mb-4">
               Choose your perfect{' '}
               <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
                 growth plan
@@ -520,7 +488,7 @@ const PricingPage = () => {
           <div className="flex flex-wrap items-center justify-center gap-8">
             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
               <Shield className="w-5 h-5 text-green-500" />
-              <span className="text-sm font-medium">30-Day Money-Back</span>
+              <span className="text-sm font-medium">3-Day Money-Back</span>
             </div>
             <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
               <Lock className="w-5 h-5 text-blue-500" />
@@ -768,19 +736,8 @@ const PricingPage = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t border-slate-200 dark:border-slate-800">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500 dark:text-slate-400">
-          <p>© 2026 TrustFlow. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Contact</a>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </MarketingLayout>
   );
 };
 
