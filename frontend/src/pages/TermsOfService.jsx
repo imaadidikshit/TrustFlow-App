@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Calendar } from 'lucide-react';
@@ -20,7 +21,12 @@ const TermsOfService = () => {
   };
 
   return (
-    <MarketingLayout>
+    <>
+      <Helmet>
+        <title>Terms of Service - TrustWall</title>
+        <meta name="description" content="TrustWall Terms of Service - Read our terms and conditions for using our services." />
+      </Helmet>
+      <MarketingLayout>
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4">
           <motion.div
@@ -310,6 +316,7 @@ const TermsOfService = () => {
         </div>
       </section>
     </MarketingLayout>
+    </>
   );
 };
 

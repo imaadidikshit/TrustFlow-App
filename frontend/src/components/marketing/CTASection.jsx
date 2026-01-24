@@ -125,14 +125,24 @@ const ROIDashboard = () => {
             
             <div className="flex items-end justify-between h-24 sm:h-32 gap-1 sm:gap-2">
               {barData.map((bar, i) => (
-                <div key={bar.month} className="flex-1 flex flex-col items-center gap-1">
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: phase >= 2 ? `${bar.value}%` : '20%' }}
-                    transition={{ delay: i * 0.1, duration: 0.8, ease: 'easeOut' }}
-                    className="w-full bg-gradient-to-t from-violet-500 to-indigo-400 rounded-t-lg min-h-[8px]"
-                  />
-                  <span className="text-[10px] sm:text-xs text-white/60">{bar.month}</span>
+                <div key={bar.month} className="flex-1 flex flex-col items-center h-full">
+                  <div className="flex-1 w-full flex flex-col justify-end">
+                    <motion.div
+                      initial={{ height: '15%', opacity: 0.4 }}
+                      animate={{ 
+                        height: phase >= 2 ? `${bar.value}%` : '15%',
+                        opacity: phase >= 2 ? 1 : 0.4
+                      }}
+                      transition={{ 
+                        delay: i * 0.1, 
+                        duration: 0.8, 
+                        ease: [0.34, 1.56, 0.64, 1] // bouncy ease for nice effect
+                      }}
+                      className="w-full bg-gradient-to-t from-violet-500 to-indigo-400 rounded-t-lg shadow-lg"
+                      style={{ minHeight: '12px' }}
+                    />
+                  </div>
+                  <span className="text-[10px] sm:text-xs text-white/60 mt-1">{bar.month}</span>
                 </div>
               ))}
             </div>

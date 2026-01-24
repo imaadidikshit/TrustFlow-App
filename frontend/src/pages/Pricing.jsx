@@ -523,24 +523,29 @@ const PricingPage = () => {
                       {/* CTA Button */}
                       <Button
                         className={`w-full mb-6 min-h-[44px] touch-manipulation ${
-                          isCurrentPlan 
+                          user && isCurrentPlan 
                             ? 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 cursor-default' 
                             : plan.id === 'free'
                               ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
                               : `bg-gradient-to-r ${plan.gradient} hover:opacity-90 text-white shadow-lg`
                         }`}
-                        onClick={() => !isCurrentPlan && !checkoutLoading && handleSelectPlan(plan.id)}
-                        disabled={isCurrentPlan || checkoutLoading === plan.id}
+                        onClick={() => !(user && isCurrentPlan) && !checkoutLoading && handleSelectPlan(plan.id)}
+                        disabled={(user && isCurrentPlan) || checkoutLoading === plan.id}
                       >
                         {checkoutLoading === plan.id ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Processing...
                           </>
-                        ) : isCurrentPlan ? (
+                        ) : user && isCurrentPlan ? (
                           <>
                             <Check className="w-4 h-4 mr-2" />
                             Current Plan
+                          </>
+                        ) : plan.id === 'free' ? (
+                          <>
+                            Get Started Free
+                            <ArrowRight className="w-4 h-4 ml-2" />
                           </>
                         ) : (
                           <>
@@ -615,7 +620,11 @@ const PricingPage = () => {
       {/* Feature Comparison */}
       <section className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
+            <Badge className="mb-4 bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 border-0">
+              <Layout className="w-3 h-3 mr-1" />
+              Feature Comparison
+            </Badge>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
               Compare All Features
             </h2>
@@ -627,10 +636,12 @@ const PricingPage = () => {
           <Button
             variant="outline"
             onClick={() => setShowComparison(!showComparison)}
-            className="w-full mb-6"
+            className="w-full mb-6 h-12 border-2 border-dashed border-violet-300 dark:border-violet-700 hover:border-violet-500 dark:hover:border-violet-500 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-all"
           >
-            {showComparison ? 'Hide' : 'Show'} Detailed Comparison
-            {showComparison ? <ChevronUp className="ml-2 w-4 h-4" /> : <ChevronDown className="ml-2 w-4 h-4" />}
+            <span className="flex items-center gap-2">
+              {showComparison ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+              {showComparison ? 'Hide' : 'Show'} Detailed Comparison
+            </span>
           </Button>
           
           <AnimatePresence>
@@ -642,34 +653,51 @@ const PricingPage = () => {
                 transition={{ duration: 0.3 }}
                 className="overflow-hidden"
               >
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden">
                   {/* Header */}
-                  <div className="grid grid-cols-4 gap-4 p-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-                    <div className="font-semibold text-slate-900 dark:text-white">Feature</div>
-                    <div className="text-center font-semibold text-slate-600 dark:text-slate-400">Free</div>
-                    <div className="text-center font-semibold text-violet-600 dark:text-violet-400">Starter</div>
-                    <div className="text-center font-semibold text-amber-600 dark:text-amber-400">Pro</div>
+                  <div className="grid grid-cols-4 gap-4 p-5 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                    <div className="font-bold text-slate-900 dark:text-white text-sm uppercase tracking-wide">Feature</div>
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200 dark:bg-slate-700">
+                        <Zap className="w-3 h-3 text-slate-600 dark:text-slate-400" />
+                        <span className="font-semibold text-slate-600 dark:text-slate-400 text-sm">Free</span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/50">
+                        <Rocket className="w-3 h-3 text-violet-600 dark:text-violet-400" />
+                        <span className="font-semibold text-violet-600 dark:text-violet-400 text-sm">Starter</span>
+                      </div>
+                    </div>
+                    <div className="text-center">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/50">
+                        <Crown className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+                        <span className="font-semibold text-amber-600 dark:text-amber-400 text-sm">Pro</span>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Feature Groups */}
-                  {FEATURE_COMPARISON.map((group) => {
+                  {FEATURE_COMPARISON.map((group, groupIdx) => {
                     const GroupIcon = group.icon;
                     return (
                       <div key={group.category}>
-                        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
-                          <div className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-300">
-                            <GroupIcon className="w-4 h-4" />
-                            {group.category}
+                        <div className="px-5 py-4 bg-gradient-to-r from-violet-50/50 to-indigo-50/50 dark:from-slate-800/80 dark:to-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
+                              <GroupIcon className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                            </div>
+                            <span className="font-semibold text-slate-800 dark:text-slate-200">{group.category}</span>
                           </div>
                         </div>
                         {group.features.map((feature, idx) => (
                           <div 
                             key={feature.name}
-                            className={`grid grid-cols-4 gap-4 p-4 ${
+                            className={`grid grid-cols-4 gap-4 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${
                               idx !== group.features.length - 1 ? 'border-b border-slate-100 dark:border-slate-800' : ''
-                            }`}
+                            } ${groupIdx === FEATURE_COMPARISON.length - 1 && idx === group.features.length - 1 ? '' : ''}`}
                           >
-                            <div className="text-sm text-slate-600 dark:text-slate-400">{feature.name}</div>
+                            <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{feature.name}</div>
                             <FeatureValue value={feature.free} />
                             <FeatureValue value={feature.starter} />
                             <FeatureValue value={feature.pro} />
@@ -737,9 +765,13 @@ const PricingPage = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-900/80">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
+            <Badge className="mb-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 border-0">
+              <MessageSquare className="w-3 h-3 mr-1" />
+              FAQ
+            </Badge>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
               Frequently Asked Questions
             </h2>
@@ -748,7 +780,7 @@ const PricingPage = () => {
             </p>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             {FAQS.map((faq, index) => (
               <motion.div
                 key={index}
@@ -757,23 +789,51 @@ const PricingPage = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card 
-                  className="cursor-pointer transition-all hover:shadow-md"
+                <div 
+                  className={`bg-white dark:bg-slate-800/80 rounded-xl border transition-all cursor-pointer ${
+                    expandedFaq === index 
+                      ? 'border-violet-300 dark:border-violet-600 shadow-lg shadow-violet-500/10' 
+                      : 'border-slate-200 dark:border-slate-700 hover:border-violet-200 dark:hover:border-violet-800 hover:shadow-md'
+                  }`}
                   onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base font-medium text-slate-900 dark:text-white">
-                        {faq.q}
-                      </CardTitle>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                          expandedFaq === index 
+                            ? 'bg-violet-100 dark:bg-violet-900/50' 
+                            : 'bg-slate-100 dark:bg-slate-700'
+                        }`}>
+                          <span className={`text-sm font-bold ${
+                            expandedFaq === index 
+                              ? 'text-violet-600 dark:text-violet-400' 
+                              : 'text-slate-500 dark:text-slate-400'
+                          }`}>
+                            {index + 1}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-left">
+                          {faq.q}
+                        </h3>
+                      </div>
                       <motion.div
                         animate={{ rotate: expandedFaq === index ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
+                        className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                          expandedFaq === index 
+                            ? 'bg-violet-100 dark:bg-violet-900/50' 
+                            : 'bg-slate-100 dark:bg-slate-700'
+                        }`}
                       >
-                        <ChevronDown className="w-5 h-5 text-slate-400" />
+                        <ChevronDown className={`w-4 h-4 ${
+                          expandedFaq === index 
+                            ? 'text-violet-600 dark:text-violet-400' 
+                            : 'text-slate-400'
+                        }`} />
                       </motion.div>
                     </div>
-                  </CardHeader>
+                  </div>
                   <AnimatePresence>
                     {expandedFaq === index && (
                       <motion.div
@@ -781,14 +841,17 @@ const PricingPage = () => {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
                       >
-                        <CardContent className="pt-0 pb-4">
-                          <p className="text-slate-600 dark:text-slate-400">{faq.a}</p>
-                        </CardContent>
+                        <div className="px-5 pb-5 pt-0">
+                          <div className="pl-11 pr-4">
+                            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{faq.a}</p>
+                          </div>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
-                </Card>
+                </div>
               </motion.div>
             ))}
           </div>

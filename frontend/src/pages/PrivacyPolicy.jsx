@@ -6,6 +6,7 @@
  */
 
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Shield, Calendar } from 'lucide-react';
@@ -20,7 +21,12 @@ const PrivacyPolicy = () => {
   };
 
   return (
-    <MarketingLayout>
+    <>
+      <Helmet>
+        <title>Privacy Policy - TrustWall</title>
+        <meta name="description" content="TrustWall Privacy Policy - Learn how we collect, use, and protect your data." />
+      </Helmet>
+      <MarketingLayout>
       <section className="py-12 md:py-20">
         <div className="container mx-auto px-4">
           <motion.div
@@ -252,6 +258,7 @@ const PrivacyPolicy = () => {
         </div>
       </section>
     </MarketingLayout>
+    </>
   );
 };
 

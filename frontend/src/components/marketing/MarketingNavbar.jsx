@@ -5,7 +5,7 @@
  * Fully responsive with mobile menu support.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,53 @@ import { cn } from '@/lib/utils';
 const MarketingNavbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
+  const lastTapRef = useRef(0);
+  const tapTimeoutRef = useRef(null);
+
+  // Double-tap easter egg handler for dark mode toggle
+  const handleLogoDoubleTap = useCallback((e) => {
+    e.preventDefault();
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // ms
+
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected - toggle dark mode
+      clearTimeout(tapTimeoutRef.current);
+      setIsDarkMode(prev => {
+        const newMode = !prev;
+        if (newMode) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        return newMode;
+      });
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+      // Reset after timeout if no second tap
+      tapTimeoutRef.current = setTimeout(() => {
+        lastTapRef.current = 0;
+      }, DOUBLE_TAP_DELAY);
+    }
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (tapTimeoutRef.current) {
+        clearTimeout(tapTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Reset dark mode on page reload (keep light theme as default)
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    setIsDarkMode(false);
+  }, []);
 
   // Track scroll position for floating effect
   useEffect(() => {
@@ -75,7 +121,12 @@ const MarketingNavbar = () => {
               <motion.div
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
-                className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-500/30 group-hover:shadow-violet-500/50 transition-shadow"
+                onClick={handleLogoDoubleTap}
+                onTouchEnd={handleLogoDoubleTap}
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all cursor-pointer select-none",
+                  "bg-gradient-to-br from-violet-600 to-indigo-600 shadow-violet-500/30 group-hover:shadow-violet-500/50"
+                )}
               >
                 <Star className="w-6 h-6 text-white" />
               </motion.div>

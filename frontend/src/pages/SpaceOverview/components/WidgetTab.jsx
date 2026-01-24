@@ -13,8 +13,8 @@ import {
   Palette, Type, MessageSquare, Quote, Hand, Square, Circle, AlignLeft,
   Check, X, Sparkles, RefreshCw, Gauge, ChevronLeft, ChevronRight, Star, BadgeCheck,
   Smartphone, Tablet, Laptop, Save, RotateCcw, Shuffle, Heading,
-  Maximize2, Minimize2, Layers, Info, Loader2, AlertCircle, ChevronDown, CheckCircle, AlertTriangle, Bell, Clock, MapPin,
-  ExternalLink, Crown, Link as LinkIcon, Heart, Lock
+  Maximize2, Minimize2, Layers, Info, AlertCircle, ChevronDown, CheckCircle, AlertTriangle, Bell, Clock, MapPin,
+  ExternalLink, Crown, Link as LinkIcon, Heart, Lock, Loader2
 } from 'lucide-react';
 import { StylishVideoPlayer, PremiumToggle, SectionHeader, CARD_WIDTH, GAP, PADDING_X } from './SharedComponents';
 import confetti from 'canvas-confetti';
@@ -725,7 +725,7 @@ const WidgetTab = ({
                    <span className="text-xs text-muted-foreground hidden md:inline">{displayedTestimonials.length} active</span>
                </div>
                
-               <div className="flex items-center bg-slate-100 rounded-lg p-1 border">
+               <div className="flex items-center bg-slate-100 dark:bg-slate-700 rounded-lg p-1 border dark:border-slate-600">
                    {[
                        { mode: 'desktop', icon: Laptop },
                        { mode: 'tablet', icon: Tablet },
@@ -734,7 +734,7 @@ const WidgetTab = ({
                        <button
                            key={dev.mode}
                            onClick={() => setDeviceMode(dev.mode)}
-                           className={`p-1.5 rounded-md transition-all ${deviceMode === dev.mode ? 'bg-white shadow text-violet-600' : 'text-slate-400 hover:text-slate-600'}`}
+                           className={`p-1.5 rounded-md transition-all ${deviceMode === dev.mode ? 'bg-white dark:bg-slate-600 shadow text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                        >
                            <dev.icon className="w-4 h-4" />
                        </button>
@@ -743,7 +743,7 @@ const WidgetTab = ({
             </div>
 
             <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={handleReset} className="text-slate-400 hover:text-red-500 h-8 text-xs">
+                <Button variant="ghost" size="sm" onClick={handleReset} className="text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 h-8 text-xs">
                     <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
                 </Button>
             </div>
@@ -947,8 +947,8 @@ const WidgetTab = ({
       </div>
 
       {/* Left Column (Now BOTTOM on Mobile via order-2): Control Deck */}
-      <Card className="w-full xl:w-[420px] flex flex-col border-violet-100 dark:border-violet-900/20 shadow-xl shadow-violet-500/5 bg-white/80 backdrop-blur-sm overflow-hidden flex-shrink-0 order-2 xl:order-1 h-[600px] xl:h-full">
-        <CardHeader className="pb-4 border-b bg-white/50">
+      <Card className="w-full xl:w-[420px] flex flex-col border-violet-100 dark:border-slate-700 shadow-xl shadow-violet-500/5 bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden flex-shrink-0 order-2 xl:order-1 h-[600px] xl:h-full">
+        <CardHeader className="pb-4 border-b dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -995,7 +995,7 @@ const WidgetTab = ({
                         className={`h-8 transition-all duration-300 relative overflow-hidden ${
                           saveStatus === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' : 
                           saveStatus === 'error' ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100' : 
-                          'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                          'bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600'
                         }`}
                       >
                         <div className="flex items-center gap-1.5">
@@ -1024,11 +1024,11 @@ const WidgetTab = ({
                   <LockedIndicator featureKey="widget.social_proof_popups" />
                </div>
                
-               <div className={`p-4 rounded-xl border transition-all duration-300 ${widgetSettings.popupsEnabled ? 'bg-violet-50 border-violet-200' : 'bg-slate-50 border-slate-100'}`}>
+               <div className={`p-4 rounded-xl border transition-all duration-300 ${widgetSettings.popupsEnabled ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-700' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-600'}`}>
                    <div className="flex items-center justify-between mb-4">
                        <div className="space-y-0.5">
-                           <Label className="text-sm font-semibold text-slate-800">Enable Popups</Label>
-                           <p className="text-[10px] text-slate-500">Show recent reviews in corner</p>
+                           <Label className="text-sm font-semibold text-slate-800 dark:text-slate-100">Enable Popups</Label>
+                           <p className="text-[10px] text-slate-500 dark:text-slate-400">Show recent reviews in corner</p>
                        </div>
                        <ToggleSwitch 
                           isOn={widgetSettings.popupsEnabled} 
@@ -1046,11 +1046,11 @@ const WidgetTab = ({
                             className="overflow-hidden space-y-4 pt-2 border-t border-violet-200/50"
                         >
                             <div>
-                                <Label className="text-xs text-slate-500 mb-2 block">Position</Label>
+                                <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Position</Label>
                                 <div className="grid grid-cols-2 gap-2">
                                     <button 
                                         onClick={() => setWidgetSettings({...widgetSettings, popupPosition: 'bottom-left'})}
-                                        className={`flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all gap-1 ${widgetSettings.popupPosition === 'bottom-left' ? 'bg-white border-violet-500 text-violet-700 shadow-sm' : 'bg-transparent border-slate-200 text-slate-500 hover:bg-white'}`}
+                                        className={`flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all gap-1 ${widgetSettings.popupPosition === 'bottom-left' ? 'bg-white dark:bg-slate-700 border-violet-500 text-violet-700 dark:text-violet-300 shadow-sm' : 'bg-transparent border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}`}
                                     >
                                         <div className="w-8 h-6 bg-slate-100 rounded border border-slate-200 relative">
                                             <div className="absolute bottom-1 left-1 w-2 h-2 bg-violet-500 rounded-sm" />
@@ -1059,7 +1059,7 @@ const WidgetTab = ({
                                     </button>
                                     <button 
                                         onClick={() => setWidgetSettings({...widgetSettings, popupPosition: 'bottom-right'})}
-                                        className={`flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all gap-1 ${widgetSettings.popupPosition === 'bottom-right' ? 'bg-white border-violet-500 text-violet-700 shadow-sm' : 'bg-transparent border-slate-200 text-slate-500 hover:bg-white'}`}
+                                        className={`flex flex-col items-center justify-center p-2 rounded-lg border text-xs transition-all gap-1 ${widgetSettings.popupPosition === 'bottom-right' ? 'bg-white dark:bg-slate-700 border-violet-500 text-violet-700 dark:text-violet-300 shadow-sm' : 'bg-transparent border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-700'}`}
                                     >
                                         <div className="w-8 h-6 bg-slate-100 rounded border border-slate-200 relative">
                                             <div className="absolute bottom-1 right-1 w-2 h-2 bg-violet-500 rounded-sm" />
@@ -1070,11 +1070,11 @@ const WidgetTab = ({
                             </div>
 
                             <div>
-                                <Label className="text-xs text-slate-500 mb-2 block">Display Message</Label>
+                                <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Display Message</Label>
                                 <Input 
                                     value={widgetSettings.popupMessage} 
                                     onChange={(e) => setWidgetSettings({...widgetSettings, popupMessage: e.target.value})}
-                                    className="h-8 text-xs bg-white"
+                                    className="h-8 text-xs bg-white dark:bg-slate-600 dark:border-slate-500 dark:text-white"
                                     placeholder="Someone just shared love!"
                                 />
                             </div>
@@ -1082,7 +1082,7 @@ const WidgetTab = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <div className="flex justify-between mb-1">
-                                        <Label className="text-[10px] text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> Duration</Label>
+                                        <Label className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><Clock className="w-3 h-3" /> Duration</Label>
                                         <span className="text-[10px] font-mono text-violet-600">{widgetSettings.popupDuration}s</span>
                                     </div>
                                     <Slider 
@@ -1092,7 +1092,7 @@ const WidgetTab = ({
                                 </div>
                                 <div>
                                     <div className="flex justify-between mb-1">
-                                        <Label className="text-[10px] text-slate-500 flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Gap</Label>
+                                        <Label className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Gap</Label>
                                         <span className="text-[10px] font-mono text-violet-600">{widgetSettings.popupGap}s</span>
                                     </div>
                                     <Slider 
@@ -1127,8 +1127,8 @@ const WidgetTab = ({
             <AnimatePresence>
                 {widgetSettings.layout === 'carousel' && (
                     <motion.div initial={{opacity:0, height:0}} animate={{opacity:1, height:'auto'}} exit={{opacity:0, height:0}}>
-                        <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-lg mt-2">
-                            <Label className="text-xs text-slate-600">Equal Height Cards</Label>
+                        <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-100 dark:border-slate-600 rounded-lg mt-2">
+                            <Label className="text-xs text-slate-600 dark:text-slate-300">Equal Height Cards</Label>
                             <ToggleSwitch 
                                 isOn={widgetSettings.carouselSameSize} 
                                 onToggle={() => setWidgetSettings({...widgetSettings, carouselSameSize: !widgetSettings.carouselSameSize})} 
@@ -1146,7 +1146,7 @@ const WidgetTab = ({
              <SectionHeader icon={Layers} title="Content & Placement" />
              <div className="grid grid-cols-2 gap-4">
                  <div>
-                    <Label className="text-xs text-slate-500 mb-2 block">Placement</Label>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Placement</Label>
                     <PremiumToggle 
                         id="placement"
                         current={widgetSettings.placement}
@@ -1155,7 +1155,7 @@ const WidgetTab = ({
                     />
                  </div>
                  <div>
-                    <Label className="text-xs text-slate-500 mb-2 block">Wall Padding</Label>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Wall Padding</Label>
                     <PremiumToggle 
                         id="padding"
                         current={widgetSettings.wallPadding}
@@ -1165,10 +1165,10 @@ const WidgetTab = ({
                  </div>
              </div>
 
-             <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+             <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-100 dark:border-slate-600 space-y-4">
                  <div>
                      <div className="flex justify-between mb-2">
-                         <Label className="text-xs font-medium text-slate-600">Max Testimonials</Label>
+                         <Label className="text-xs font-medium text-slate-600 dark:text-slate-300">Max Testimonials</Label>
                          <span className="text-xs font-bold text-violet-600">{widgetSettings.maxCount}</span>
                      </div>
                      <Slider 
@@ -1192,9 +1192,9 @@ const WidgetTab = ({
              {/* Heading Control */}
              <div className="space-y-3">
                  <div className="flex items-center justify-between">
-                     <Label className="text-xs font-bold text-slate-700">Main Heading</Label>
+                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">Main Heading</Label>
                      <div className="flex items-center gap-2">
-                         <span className="text-[10px] text-slate-400">{widgetSettings.showHeading ? 'Shown' : 'Hidden'}</span>
+                         <span className="text-[10px] text-slate-400 dark:text-slate-500">{widgetSettings.showHeading ? 'Shown' : 'Hidden'}</span>
                          <ToggleSwitch 
                             isOn={widgetSettings.showHeading} 
                             onToggle={() => setWidgetSettings({...widgetSettings, showHeading: !widgetSettings.showHeading})}
@@ -1218,7 +1218,7 @@ const WidgetTab = ({
                              <div className="flex-1 relative">
                                 <button 
                                   onClick={() => setIsFontOpen(!isFontOpen)}
-                                  className="w-full h-8 flex items-center justify-between px-2 text-xs border rounded bg-white hover:bg-slate-50"
+                                  className="w-full h-8 flex items-center justify-between px-2 text-xs border rounded bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-600"
                                 >
                                   <span style={{ fontFamily: widgetSettings.headingFont }}>{widgetSettings.headingFont}</span>
                                   <ChevronDown className="w-3 h-3 opacity-50" />
@@ -1227,12 +1227,12 @@ const WidgetTab = ({
                                   {isFontOpen && (
                                     <motion.div 
                                       initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                                      className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border rounded shadow-xl z-50 scrollbar-thin"
+                                      className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 border dark:border-slate-600 rounded shadow-xl z-50 scrollbar-thin"
                                     >
                                       {PREMIUM_FONTS.map(font => (
                                         <div 
                                           key={font}
-                                          className="px-3 py-1.5 text-xs hover:bg-violet-50 cursor-pointer flex items-center justify-between"
+                                          className="px-3 py-1.5 text-xs hover:bg-violet-50 dark:hover:bg-slate-700 dark:text-white cursor-pointer flex items-center justify-between"
                                           style={{ fontFamily: font }}
                                           onClick={() => {
                                             setWidgetSettings({...widgetSettings, headingFont: font});
@@ -1250,10 +1250,10 @@ const WidgetTab = ({
                                 </AnimatePresence>
                              </div>
                              <Button 
-                               variant="outline" size="icon" className={`h-8 w-8 ${widgetSettings.headingBold ? 'bg-slate-100' : ''}`}
+                               variant="outline" size="icon" className={`h-8 w-8 ${widgetSettings.headingBold ? 'bg-slate-100 dark:bg-slate-600' : 'dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700'}`}
                                onClick={() => setWidgetSettings({...widgetSettings, headingBold: !widgetSettings.headingBold})}
                              >
-                                 <span className="font-bold">B</span>
+                                 <span className="font-bold text-slate-800 dark:text-white">B</span>
                              </Button>
                          </div>
                      </div>
@@ -1263,9 +1263,9 @@ const WidgetTab = ({
              {/* Subheading Control */}
              <div className="space-y-3 pt-2">
                  <div className="flex items-center justify-between">
-                     <Label className="text-xs font-bold text-slate-700">Subheading</Label>
+                     <Label className="text-xs font-bold text-slate-700 dark:text-slate-200">Subheading</Label>
                      <div className="flex items-center gap-2">
-                         <span className="text-[10px] text-slate-400">{widgetSettings.showSubheading ? 'Shown' : 'Hidden'}</span>
+                         <span className="text-[10px] text-slate-400 dark:text-slate-500">{widgetSettings.showSubheading ? 'Shown' : 'Hidden'}</span>
                          <ToggleSwitch 
                             isOn={widgetSettings.showSubheading} 
                             onToggle={() => setWidgetSettings({...widgetSettings, showSubheading: !widgetSettings.showSubheading})}
@@ -1303,10 +1303,10 @@ const WidgetTab = ({
                   <FeatureIndicator featureKey="widget.card_styling" />
               </div>
             
-            <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg border border-slate-100 dark:border-slate-600">
                  <div className="flex items-center gap-2">
-                     <Shuffle className="w-4 h-4 text-slate-500" />
-                     <Label className="text-xs text-slate-600">Shuffle Content</Label>
+                     <Shuffle className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                     <Label className="text-xs text-slate-600 dark:text-slate-300">Shuffle Content</Label>
                  </div>
                  <Button 
                     size="sm" variant={widgetSettings.shuffle ? 'default' : 'outline'} 
@@ -1319,7 +1319,7 @@ const WidgetTab = ({
 
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                  <Label className="text-xs text-slate-500 mb-2 block">Card Size</Label>
+                  <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Card Size</Label>
                   <PremiumToggle 
                     id="cardSize"
                     current={widgetSettings.cardSize}
@@ -1333,7 +1333,7 @@ const WidgetTab = ({
               </div>
 
               <div>
-                <Label className="text-xs text-slate-500 mb-1.5 block">Background</Label>
+                <Label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Background</Label>
                 <PremiumToggle 
                   id="theme"
                   current={widgetSettings.theme}
@@ -1347,7 +1347,7 @@ const WidgetTab = ({
               </div>
               
               <div>
-                <Label className="text-xs text-slate-500 mb-1.5 block">Card Style</Label>
+                <Label className="text-xs text-slate-500 dark:text-slate-400 mb-1.5 block">Card Style</Label>
                 <PremiumToggle 
                   id="cardTheme"
                   current={widgetSettings.cardTheme}
@@ -1464,15 +1464,15 @@ const WidgetTab = ({
             
             <div className="space-y-6">
                {/* Smooth Continuous Scroll - NEW */}
-               <div className="bg-gradient-to-br from-violet-50 to-indigo-50 p-4 rounded-xl border border-violet-100 relative overflow-hidden">
+               <div className="bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/30 dark:to-indigo-900/30 p-4 rounded-xl border border-violet-100 dark:border-violet-800 relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-2 opacity-10"><Sparkles className="w-12 h-12 text-violet-500" /></div>
                    <div className="relative z-10 space-y-4">
                        <div className="flex items-center justify-between">
                             <div className="space-y-0.5">
-                                <Label className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                                <Label className="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                                     <RefreshCw className="w-3 h-3" /> Smooth Continuous Scroll
                                 </Label>
-                                <p className="text-[10px] text-slate-500">Marquee-style infinite loop animation</p>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">Marquee-style infinite loop animation</p>
                             </div>
                             
                             {(widgetSettings.layout === 'carousel' || widgetSettings.layout === 'grid') ? (
@@ -1489,7 +1489,7 @@ const WidgetTab = ({
                                     }}
                                 />
                             ) : (
-                                <Badge variant="outline" className="text-[10px] border-slate-300 text-slate-500">Carousel/Grid Only</Badge>
+                                <Badge variant="outline" className="text-[10px] border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400">Carousel/Grid Only</Badge>
                             )}
                        </div>
                        
@@ -1499,9 +1499,9 @@ const WidgetTab = ({
                                animate={{ opacity: 1, height: 'auto' }} 
                                className="pt-3 border-t border-violet-200/50"
                            >
-                               <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                               <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-1">
                                    <span>Slow</span>
-                                   <span className="font-mono text-violet-600">{widgetSettings.smoothScrollSpeed || 30}px/s</span>
+                                   <span className="font-mono text-violet-600 dark:text-violet-400">{widgetSettings.smoothScrollSpeed || 30}px/s</span>
                                    <span>Fast</span>
                                </div>
                                <Slider 
@@ -1609,11 +1609,11 @@ const WidgetTab = ({
                   <FeatureIndicator featureKey="widget.remove_branding" />
                </div>
                
-               <div className={`p-4 rounded-xl border transition-all duration-300 ${!widgetSettings.showBranding ? 'bg-violet-50 border-violet-200' : 'bg-slate-50 border-slate-100'}`}>
+               <div className={`p-4 rounded-xl border transition-all duration-300 ${!widgetSettings.showBranding ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-700' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-600'}`}>
                    <div className="flex items-center justify-between">
                        <div className="space-y-0.5">
-                           <Label className="text-sm font-semibold text-slate-800">Remove Branding</Label>
-                           <p className="text-[10px] text-slate-500">Hide "Powered by TrustWall" badge</p>
+                           <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Remove Branding</Label>
+                           <p className="text-[10px] text-slate-500 dark:text-slate-400">Hide "Powered by TrustWall" badge</p>
                        </div>
                        <ToggleSwitch 
                           isOn={!widgetSettings.showBranding} 
@@ -1637,12 +1637,12 @@ const WidgetTab = ({
                   <FeatureIndicator featureKey="widget.custom_button" />
                </div>
                
-               <div className={`p-4 rounded-xl border transition-all duration-300 ${widgetSettings.seeMoreEnabled ? 'bg-violet-50 border-violet-200' : 'bg-slate-50 border-slate-100'}`}>
+               <div className={`p-4 rounded-xl border transition-all duration-300 ${widgetSettings.seeMoreEnabled ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-700' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-600'}`}>
                    {/* Enable/Disable Toggle */}
                    <div className="flex items-center justify-between mb-4">
                        <div className="space-y-0.5">
-                           <Label className="text-sm font-semibold text-slate-800">Enable Action Button</Label>
-                           <p className="text-[10px] text-slate-500">Show button below testimonials</p>
+                           <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Enable Action Button</Label>
+                           <p className="text-[10px] text-slate-500 dark:text-slate-400">Show button below testimonials</p>
                        </div>
                        <ToggleSwitch 
                           isOn={widgetSettings.seeMoreEnabled !== false} 
@@ -1660,19 +1660,19 @@ const WidgetTab = ({
                               initial={{ height: 0, opacity: 0 }} 
                               animate={{ height: 'auto', opacity: 1 }} 
                               exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden space-y-4 pt-2 border-t border-violet-200/50"
+                              className="overflow-hidden space-y-4 pt-2 border-t border-violet-200/50 dark:border-violet-700/50"
                           >
                               <div className="space-y-2">
-                                  <Label className="text-xs text-slate-500">Button Text</Label>
+                                  <Label className="text-xs text-slate-500 dark:text-slate-400">Button Text</Label>
                                   <Input 
                                       value={widgetSettings.seeMoreButtonText || 'See More'} 
                                       onChange={(e) => setWidgetSettings({...widgetSettings, seeMoreButtonText: e.target.value})}
-                                      className="h-8 text-xs bg-white"
+                                      className="h-8 text-xs bg-white dark:bg-slate-600 dark:border-slate-500 dark:text-white"
                                       placeholder="See More"
                                   />
                               </div>
                               <div className="space-y-2">
-                                  <Label className="text-xs text-slate-500 flex items-center gap-1">
+                                  <Label className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                       <LinkIcon className="w-3 h-3" /> Redirect Link
                                   </Label>
                                   <Input 
@@ -1681,10 +1681,10 @@ const WidgetTab = ({
                                           console.log('DEBUG: See More Link updated to:', e.target.value);
                                           setWidgetSettings({...widgetSettings, seeMoreButtonLink: e.target.value});
                                       }}
-                                      className="h-8 text-xs bg-white"
+                                      className="h-8 text-xs bg-white dark:bg-slate-600 dark:border-slate-500 dark:text-white"
                                       placeholder="https://example.com/testimonials"
                                   />
-                                  <p className="text-[10px] text-slate-400">Where users go when they click the button on Wall of Love</p>
+                                  <p className="text-[10px] text-slate-400 dark:text-slate-500">Where users go when they click the button on Wall of Love</p>
                               </div>
                           </motion.div>
                       )}

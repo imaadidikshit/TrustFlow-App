@@ -44,9 +44,9 @@ const HowItWorks = () => {
         {/* Steps */}
         <div className="max-w-5xl mx-auto">
           <div className="grid md:grid-cols-3 gap-6 md:gap-8 relative">
-            {/* Connection line (desktop) */}
-            <div className="hidden md:block absolute top-24 left-1/4 right-1/4 h-0.5">
-              <div className="h-full bg-gradient-to-r from-violet-200 via-violet-300 to-violet-200 dark:from-violet-800 dark:via-violet-700 dark:to-violet-800" />
+            {/* Connection line (desktop) - positioned below step numbers */}
+            <div className="hidden md:block absolute top-24 left-1/4 right-1/4 h-0.5 -z-10">
+              <div className="h-full bg-gradient-to-r from-violet-200 via-violet-300 to-violet-200 dark:from-violet-800/50 dark:via-violet-600/50 dark:to-violet-800/50" />
             </div>
 
             {howItWorksSteps.map((step, index) => {

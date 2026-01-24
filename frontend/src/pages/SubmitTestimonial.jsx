@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/lib/supabase';
 import { 
-  Video, FileText, Star, Loader2, CheckCircle, Camera, RotateCcw, 
+  Video, FileText, Star, CheckCircle, Camera, RotateCcw, 
   Upload, ArrowLeft, User, Briefcase, Trash2, Image as ImageIcon, AlertCircle, AlertTriangle, Plus, X, ExternalLink
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import confetti from 'canvas-confetti';
+import BrandedLoader from '@/components/BrandedLoader';
 
 const SubmitTestimonial = ({ customSlug }) => {
   // Use customSlug prop if provided (for custom domains), otherwise use URL param
@@ -261,6 +262,20 @@ const SubmitTestimonial = ({ customSlug }) => {
     const themeId = formSettings?.theme_config?.pageTheme || 'minimal';
     return PAGE_THEMES[themeId] || PAGE_THEMES['minimal'];
   };
+
+  // --- THEME ISOLATION: Reset global theme for public pages ---
+  // This ensures the user's dashboard theme does NOT affect public-facing pages
+  useLayoutEffect(() => {
+    // Remove any global dark class set by user preferences
+    // Public pages manage their own theme based on form settings
+    const root = document.documentElement;
+    root.classList.remove('dark');
+    
+    // Cleanup on unmount - don't restore theme, let AuthContext handle it
+    return () => {
+      // The AuthContext will re-apply user theme when navigating back to dashboard
+    };
+  }, []);
 
   useEffect(() => {
     fetchSpace();
@@ -715,7 +730,11 @@ const SubmitTestimonial = ({ customSlug }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-violet-600" /></div>;
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <BrandedLoader size="default" />
+    </div>
+  );
   if (!space) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="text-center"><h1 className="text-2xl font-bold mb-2">Space Not Found</h1><p className="text-muted-foreground">Invalid link.</p></div></div>;
 
   const themeClasses = getThemeClasses();

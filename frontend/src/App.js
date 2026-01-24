@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { Toaster } from "@/components/ui/toaster";
+import BrandedLoader from "@/components/BrandedLoader";
 
 // Pages
 import Landing from "@/pages/NewLanding";
@@ -112,11 +113,8 @@ const CustomDomainHandler = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-10 h-10 border-4 border-violet-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+        <BrandedLoader />
       </div>
     );
   }
@@ -155,8 +153,8 @@ const ProtectedRoute = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-violet-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+        <BrandedLoader />
       </div>
     );
   }

@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -519,19 +520,27 @@ const FomoPopupsFeatureUI = () => {
 // CTA Analytics Feature UI with animated graphs
 const CTAAnalyticsFeatureUI = () => {
   const [showGraphs, setShowGraphs] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(false);
   const data = [
     { label: 'Views', value: 12847, color: 'from-blue-500 to-blue-600', height: 85 },
-    { label: 'Clicks', value: 2341, color: 'from-violet-500 to-violet-600', height: 60 },
-    { label: 'Conversions', value: 847, color: 'from-green-500 to-green-600', height: 45 },
-    { label: 'CTR', value: '18.2%', color: 'from-amber-500 to-amber-600', height: 70 },
+    { label: 'Clicks', value: 2341, color: 'from-violet-500 to-violet-600', height: 65 },
+    { label: 'Conversions', value: 847, color: 'from-green-500 to-green-600', height: 50 },
+    { label: 'CTR', value: '18.2%', color: 'from-amber-500 to-amber-600', height: 75 },
   ];
 
   useEffect(() => {
-    setTimeout(() => setShowGraphs(true), 500);
-  }, []);
+    if (isInViewport) {
+      const timer = setTimeout(() => setShowGraphs(true), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isInViewport]);
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      onViewportEnter={() => setIsInViewport(true)}
+      viewport={{ once: true, margin: "-50px" }}
+    >
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {data.map((item, i) => (
@@ -559,13 +568,23 @@ const CTAAnalyticsFeatureUI = () => {
       <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
         <div className="flex items-end justify-between h-28 sm:h-32 gap-2 sm:gap-3">
           {data.map((item, i) => (
-            <div key={item.label} className="flex-1 flex flex-col items-center">
-              <motion.div
-                initial={{ height: 0 }}
-                animate={{ height: showGraphs ? `${item.height}%` : 0 }}
-                transition={{ delay: i * 0.15, duration: 0.8, ease: 'easeOut' }}
-                className={`w-full bg-gradient-to-t ${item.color} rounded-t-lg min-h-[4px]`}
-              />
+            <div key={item.label} className="flex-1 flex flex-col items-center h-full">
+              <div className="flex-1 w-full flex flex-col justify-end">
+                <motion.div
+                  initial={{ height: '8%', opacity: 0.3 }}
+                  animate={{ 
+                    height: showGraphs ? `${item.height}%` : '8%',
+                    opacity: showGraphs ? 1 : 0.3
+                  }}
+                  transition={{ 
+                    delay: i * 0.15, 
+                    duration: 0.8, 
+                    ease: [0.34, 1.56, 0.64, 1] // bouncy ease
+                  }}
+                  className={`w-full bg-gradient-to-t ${item.color} rounded-t-lg shadow-lg`}
+                  style={{ minHeight: '8px' }}
+                />
+              </div>
               <span className="text-xs text-slate-500 mt-2 truncate w-full text-center">{item.label}</span>
             </div>
           ))}
@@ -580,7 +599,7 @@ const CTAAnalyticsFeatureUI = () => {
           <TrendingUp className="w-3 h-3 mr-1" /> +23% this week
         </Badge>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -1083,7 +1102,12 @@ const FeaturesPage = () => {
   const allSections = [...featuresPageData.sections, ...additionalSections];
 
   return (
-    <MarketingLayout>
+    <>
+      <Helmet>
+        <title>Features - TrustWall | Powerful Testimonial Tools</title>
+        <meta name="description" content="Discover all the features TrustWall offers - video testimonials, beautiful widgets, analytics, and more." />
+      </Helmet>
+      <MarketingLayout>
       {/* Hero Section */}
       <section className="pt-12 pb-16 md:pt-20 md:pb-24">
         <div className="container mx-auto px-4">
@@ -1256,6 +1280,7 @@ const FeaturesPage = () => {
       {/* CTA */}
       <CTASection />
     </MarketingLayout>
+    </>
   );
 };
 
