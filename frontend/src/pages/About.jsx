@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { Helmet } from 'react-helmet-async';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,7 +59,12 @@ const About = () => {
   ];
 
   return (
-    <MarketingLayout>
+    <>
+      <Helmet>
+        <title>About Us - TrustWall</title>
+        <meta name="description" content="Learn about TrustWall's mission to help businesses build trust through authentic customer testimonials." />
+      </Helmet>
+      <MarketingLayout>
       {/* Hero Section */}
       <section className="pt-12 pb-16 md:pt-20 md:pb-24">
         <div className="container mx-auto px-4">
@@ -256,6 +262,7 @@ const About = () => {
       {/* CTA */}
       <CTASection />
     </MarketingLayout>
+    </>
   );
 };
 

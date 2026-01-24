@@ -6,6 +6,7 @@
  */
 
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -88,7 +89,12 @@ const DemoPage = () => {
   };
 
   return (
-    <MarketingLayout>
+    <>
+      <Helmet>
+        <title>Live Demo - TrustWall | Try Our Widget Playground</title>
+        <meta name="description" content="Try TrustWall's interactive demo. Customize widgets, explore layouts, and see how testimonials look on your site." />
+      </Helmet>
+      <MarketingLayout>
       {/* Hero */}
       <section className="pt-12 pb-8 md:pt-20 md:pb-12">
         <div className="container mx-auto px-4">
@@ -732,6 +738,7 @@ const DemoPage = () => {
       {/* CTA */}
       <CTASection />
     </MarketingLayout>
+    </>
   );
 };
 

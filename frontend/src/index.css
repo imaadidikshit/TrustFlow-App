@@ -164,6 +164,31 @@ code {
   background-color: rgba(155, 155, 155, 0.7);
 }
 
+/* Thin scrollbar utility */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(203 213 225);
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(148 163 184);
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgb(71 85 105);
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(100 116 139);
+}
+
 /* Custom utility to force transparency only when needed */
 .force-transparent {
   background-color: transparent !important;

@@ -10,10 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
-  Star, Video, FileText, Loader2, Smartphone, Tablet, Laptop, 
+  Star, Video, FileText, Smartphone, Tablet, Laptop, 
   Palette, Type, Layout, ArrowLeft, User, CheckCircle, Camera, Upload, RotateCcw,
   Image as ImageIcon, Link as LinkIcon, Plus, Heart, Monitor, Crown, X, Aperture, Check, AlertCircle, Trash2,
-  ExternalLink, Save, Sparkles, Zap, Moon, Sun, Waves, Mountain, Flame, Snowflake, Leaf, CloudRain, Lock
+  ExternalLink, Save, Sparkles, Zap, Moon, Sun, Waves, Mountain, Flame, Snowflake, Leaf, CloudRain, Lock, Loader2
 } from 'lucide-react';
 import { PremiumToggle, SectionHeader } from './SharedComponents';
 import confetti from 'canvas-confetti';
@@ -1048,7 +1048,7 @@ const EditFormTab = ({
           </div>
           
           {/* Name */}
-          <p className={`text-[10px] font-medium text-center truncate ${isSelected ? 'text-violet-700' : 'text-slate-600'}`}>
+          <p className={`text-[10px] font-medium text-center truncate ${isSelected ? 'text-violet-700 dark:text-violet-400' : 'text-slate-600 dark:text-slate-400'}`}>
             {theme.name}
           </p>
         </motion.button>
@@ -1088,7 +1088,7 @@ const EditFormTab = ({
            {/* DEVICE TOGGLES: Removed 'hidden sm:flex' so it shows on mobile too */}
            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0">
               {[ { id: 'mobile', icon: Smartphone }, { id: 'tablet', icon: Tablet }, { id: 'desktop', icon: Monitor } ].map((device) => (
-                <button key={device.id} onClick={() => updateThemeConfig({ viewMode: device.id })} className={`p-2 rounded-md transition-all ${themeConfig.viewMode === device.id ? 'bg-white dark:bg-slate-700 shadow-sm text-violet-600' : 'text-slate-400 hover:text-slate-600'}`}>
+                <button key={device.id} onClick={() => updateThemeConfig({ viewMode: device.id })} className={`p-2 rounded-md transition-all ${themeConfig.viewMode === device.id ? 'bg-white dark:bg-slate-700 shadow-sm text-violet-600 dark:text-violet-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                   <device.icon className="w-4 h-4" />
                 </button>
               ))}
@@ -1384,8 +1384,8 @@ const EditFormTab = ({
       </div>
 
       {/* LEFT (Now BOTTOM on Mobile via order-2): Designer Controls */}
-      <Card className="w-full xl:w-[420px] flex flex-col border-violet-100 dark:border-violet-900/20 shadow-xl shadow-violet-500/5 bg-white/80 backdrop-blur-sm overflow-hidden flex-shrink-0 order-2 xl:order-1 h-[650px] xl:h-full">
-        <CardHeader className="pb-3 border-b bg-gradient-to-r from-violet-50/50 to-white">
+      <Card className="w-full xl:w-[420px] flex flex-col border-violet-100 dark:border-slate-700 shadow-xl shadow-violet-500/5 bg-white/80 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden flex-shrink-0 order-2 xl:order-1 h-[650px] xl:h-full">
+        <CardHeader className="pb-3 border-b dark:border-slate-700 bg-gradient-to-r from-violet-50/50 to-white dark:from-slate-800 dark:to-slate-800/90">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="p-2 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg shadow-lg shadow-violet-500/20">
@@ -1410,7 +1410,7 @@ const EditFormTab = ({
                   : 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-violet-500/25'
               }`}
             >
-              {saveStatus === 'loading' && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
+              {saveStatus === 'loading' && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
               {saveStatus === 'success' && <Check className="w-4 h-4 mr-1.5" />}
               {saveStatus === 'error' && <AlertCircle className="w-4 h-4 mr-1.5" />}
               {saveStatus === 'idle' && <Save className="w-4 h-4 mr-1.5" />}
@@ -1433,7 +1433,7 @@ const EditFormTab = ({
               
               <div className="flex items-center justify-between mb-4">
                  {/* Logo Preview in Control Panel */}
-                 <div className="h-16 w-16 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center bg-slate-50 overflow-hidden shrink-0 relative group">
+                 <div className="h-16 w-16 border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-slate-700 overflow-hidden shrink-0 relative group">
                     {logoPreview && !imageError ? (
                       <>
                         <img src={logoPreview} alt="Preview" className="w-full h-full object-contain p-1" />
@@ -1461,12 +1461,12 @@ const EditFormTab = ({
                 <TabsContent value="upload" className="mt-0">
                     <div className="flex-1">
                       <Label htmlFor="logo-upload" className="cursor-pointer">
-                        <div className="flex items-center justify-center w-full px-4 py-2 bg-white border border-slate-200 rounded-md shadow-sm hover:bg-slate-50 text-xs font-medium transition-colors">
+                        <div className="flex items-center justify-center w-full px-4 py-2 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md shadow-sm hover:bg-slate-50 dark:hover:bg-slate-600 text-xs font-medium text-slate-700 dark:text-slate-200 transition-colors">
                           {logoPreview ? 'Change File' : 'Choose File'}
                         </div>
                         <Input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                       </Label>
-                      <p className="text-[10px] text-muted-foreground mt-2 leading-tight">Rec: <span className="font-medium text-slate-700">400x400px PNG</span> (Transparent).</p>
+                      <p className="text-[10px] text-muted-foreground mt-2 leading-tight">Rec: <span className="font-medium text-slate-700 dark:text-slate-300">400x400px PNG</span> (Transparent).</p>
                     </div>
                 </TabsContent>
                 
@@ -1496,28 +1496,28 @@ const EditFormTab = ({
             <PremiumHeader icon={Palette} title="Visual Theme" />
             <div className="space-y-5">
                <div>
-                  <Label className="text-xs text-slate-500 mb-2 block">Accent Color</Label>
+                  <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Accent Color</Label>
                   <div className="flex flex-wrap gap-3">
                     {Object.keys(accentColors).filter(k => k !== 'custom').map(color => (
-                      <button key={color} onClick={() => updateThemeConfig({ accentColor: color })} className={`w-8 h-8 rounded-full bg-gradient-to-br ${accentColors[color]} transition-all shadow-sm ${themeConfig.accentColor === color ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105 hover:shadow-md'}`} />
+                      <button key={color} onClick={() => updateThemeConfig({ accentColor: color })} className={`w-8 h-8 rounded-full bg-gradient-to-br ${accentColors[color]} transition-all shadow-sm ${themeConfig.accentColor === color ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-500 scale-110' : 'hover:scale-105 hover:shadow-md'}`} />
                     ))}
-                    <button onClick={() => updateThemeConfig({ accentColor: 'custom' })} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm border border-slate-200 ${themeConfig.accentColor === 'custom' ? 'ring-2 ring-offset-2 ring-slate-400 scale-110 bg-white' : 'bg-slate-50 hover:bg-slate-100'}`} style={themeConfig.accentColor === 'custom' ? { background: themeConfig.customColor } : {}}>
-                      {themeConfig.accentColor !== 'custom' && <Plus className="w-4 h-4 text-slate-400" />}
+                    <button onClick={() => updateThemeConfig({ accentColor: 'custom' })} className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm border border-slate-200 dark:border-slate-600 ${themeConfig.accentColor === 'custom' ? 'ring-2 ring-offset-2 ring-slate-400 dark:ring-slate-500 scale-110 bg-white dark:bg-slate-600' : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600'}`} style={themeConfig.accentColor === 'custom' ? { background: themeConfig.customColor } : {}}>
+                      {themeConfig.accentColor !== 'custom' && <Plus className="w-4 h-4 text-slate-400 dark:text-slate-300" />}
                     </button>
                   </div>
                   <AnimatePresence>
                     {themeConfig.accentColor === 'custom' && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-100 overflow-hidden">
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-100 dark:border-slate-600 overflow-hidden">
                          <div className="flex items-center gap-3">
                             <input type="color" value={themeConfig.customColor} onChange={(e) => updateThemeConfig({ customColor: e.target.value })} className="w-10 h-10 rounded cursor-pointer border-0 bg-transparent p-0" />
-                            <Input value={themeConfig.customColor} onChange={(e) => updateThemeConfig({ customColor: e.target.value })} className="h-8 text-xs font-mono uppercase" />
+                            <Input value={themeConfig.customColor} onChange={(e) => updateThemeConfig({ customColor: e.target.value })} className="h-8 text-xs font-mono uppercase bg-white dark:bg-slate-600 dark:border-slate-500 dark:text-white" />
                          </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                </div>
                <div>
-                  <Label className="text-xs text-slate-500 mb-2 block">Card Theme</Label>
+                  <Label className="text-xs text-slate-500 dark:text-slate-400 mb-2 block">Card Theme</Label>
                   <PremiumToggle id="theme-mode" current={themeConfig.theme} onChange={(val) => updateThemeConfig({ theme: val })} options={[{ label: 'Light', value: 'light' }, { label: 'Dark', value: 'dark' }]} />
                </div>
             </div>
@@ -1528,14 +1528,14 @@ const EditFormTab = ({
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-violet-100 to-purple-100">
-                  <Sparkles className="w-5 h-5 text-violet-600" />
+                <div className="p-2 rounded-lg bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-900/30 dark:to-purple-900/30">
+                  <Sparkles className="w-5 h-5 text-violet-600 dark:text-violet-400" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <h3 className="font-semibold text-sm flex items-center gap-2 text-slate-800 dark:text-slate-200">
                     Page Theme
                   </h3>
-                  <p className="text-[10px] text-slate-500">Choose a background style</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">Choose a background style</p>
                 </div>
               </div>
             </div>
@@ -1566,7 +1566,7 @@ const EditFormTab = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-3 p-3 bg-gradient-to-r from-violet-50 to-purple-50 rounded-lg border border-violet-100"
+              className="mt-3 p-3 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/30 rounded-lg border border-violet-100 dark:border-violet-800"
             >
               <div className="flex items-center gap-2">
                 {(() => {
@@ -1575,11 +1575,11 @@ const EditFormTab = ({
                   return (
                     <>
                       <div className={`p-1.5 rounded-lg ${current.preview}`}>
-                        <IconComponent className={`w-4 h-4 ${current.styles?.isDark ? 'text-white' : 'text-slate-600'}`} />
+                        <IconComponent className={`w-4 h-4 ${current.styles?.isDark ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`} />
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-violet-800">{current.name}</p>
-                        <p className="text-[10px] text-violet-600">{current.description}</p>
+                        <p className="text-xs font-semibold text-violet-800 dark:text-violet-300">{current.name}</p>
+                        <p className="text-[10px] text-violet-600 dark:text-violet-400">{current.description}</p>
                       </div>
                       {current.isPremium && (
                         <Badge className="ml-auto text-[8px] bg-amber-500 text-white border-0 px-1.5 py-0.5">
@@ -1601,11 +1601,11 @@ const EditFormTab = ({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="header_title" className="text-xs">Header Title</Label>
-                <Input id="header_title" value={formSettings.header_title} onChange={(e) => setFormSettings({ ...formSettings, header_title: e.target.value })} placeholder="Share your experience..." className="bg-slate-50" />
+                <Input id="header_title" value={formSettings.header_title} onChange={(e) => setFormSettings({ ...formSettings, header_title: e.target.value })} placeholder="Share your experience..." className="bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="custom_message" className="text-xs">Custom Message</Label>
-                <Textarea id="custom_message" value={formSettings.custom_message} onChange={(e) => setFormSettings({ ...formSettings, custom_message: e.target.value })} placeholder="We appreciate your feedback..." rows={3} className="bg-slate-50 resize-none" />
+                <Textarea id="custom_message" value={formSettings.custom_message} onChange={(e) => setFormSettings({ ...formSettings, custom_message: e.target.value })} placeholder="We appreciate your feedback..." rows={3} className="bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:placeholder:text-slate-400 resize-none" />
               </div>
             </div>
           </div>
@@ -1621,7 +1621,7 @@ const EditFormTab = ({
                   id="thank_you_title" 
                   value={formSettings.thank_you_title || 'Thank you!'} 
                   onChange={(e) => setFormSettings({ ...formSettings, thank_you_title: e.target.value })} 
-                  className="bg-slate-50" 
+                  className="bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white" 
                 />
               </div>
               <div className="space-y-2">
@@ -1631,7 +1631,7 @@ const EditFormTab = ({
                   value={formSettings.thank_you_message || 'Your testimonial has been submitted.'} 
                   onChange={(e) => setFormSettings({ ...formSettings, thank_you_message: e.target.value })} 
                   rows={2} 
-                  className="bg-slate-50 resize-none" 
+                  className="bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-white resize-none" 
                 />
               </div>
             </div>
@@ -1647,19 +1647,19 @@ const EditFormTab = ({
             <div className="space-y-4">
               {/* Custom Link Redirect - Pro Feature */}
               <FeatureGate featureKey="edit_form.custom_link" showBadge={false}>
-              <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-4">
+              <div className="p-4 rounded-xl border border-slate-100 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 space-y-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <ExternalLink className="w-4 h-4 text-violet-600" />
-                    <Label className="text-sm font-semibold text-slate-800">Custom Link Redirect</Label>
+                    <ExternalLink className="w-4 h-4 text-violet-600 dark:text-violet-400" />
+                    <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Custom Link Redirect</Label>
                   </div>
                   <FeatureIndicator featureKey="edit_form.custom_link" />
                 </div>
-                <p className="text-[10px] text-slate-500 -mt-2 mb-3">Redirect users after submission to your website or custom page</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 -mt-2 mb-3">Redirect users after submission to your website or custom page</p>
                 
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label className="text-xs text-slate-500">Button Text</Label>
+                    <Label className="text-xs text-slate-500 dark:text-slate-400">Button Text</Label>
                     <Input 
                       value={formSettings.extra_settings?.thank_you_link_text || ''} 
                       onChange={(e) => {
@@ -1672,12 +1672,12 @@ const EditFormTab = ({
                           }
                         });
                       }}
-                      className="h-8 text-xs bg-white"
+                      className="h-8 text-xs bg-white dark:bg-slate-600 dark:border-slate-500 dark:text-white dark:placeholder:text-slate-400"
                       placeholder="e.g., Go to our website"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs text-slate-500 flex items-center gap-1">
+                    <Label className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
                       <LinkIcon className="w-3 h-3" /> Redirect URL
                     </Label>
                     <Input 
@@ -1692,7 +1692,7 @@ const EditFormTab = ({
                           }
                         });
                       }}
-                      className="h-8 text-xs bg-white"
+                      className="h-8 text-xs bg-white dark:bg-slate-600 dark:border-slate-500 dark:text-white dark:placeholder:text-slate-400"
                       placeholder="https://example.com"
                     />
                   </div>
@@ -1702,14 +1702,14 @@ const EditFormTab = ({
               
               {/* Remove Form Branding - STARTER */}
               <FeatureGate featureKey="edit_form.remove_branding" showBadge={false}>
-              <div className={`p-4 rounded-xl border transition-all duration-300 ${formSettings.extra_settings?.hide_branding ? 'bg-violet-50 border-violet-200' : 'bg-slate-50 border-slate-100'}`}>
+              <div className={`p-4 rounded-xl border transition-all duration-300 ${formSettings.extra_settings?.hide_branding ? 'bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-700' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-100 dark:border-slate-600'}`}>
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm font-semibold text-slate-800">Remove Form Branding</Label>
+                      <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200">Remove Form Branding</Label>
                       <FeatureIndicator featureKey="edit_form.remove_branding" size="xs" />
                     </div>
-                    <p className="text-[10px] text-slate-500">Hide "Powered by TrustWall" from submission form</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">Hide "Powered by TrustWall" from submission form</p>
                   </div>
                   <Switch 
                     checked={formSettings.extra_settings?.hide_branding || false} 
@@ -1738,23 +1738,23 @@ const EditFormTab = ({
             </div>
             <div className="space-y-3">
               {/* Text testimonials - FREE for all */}
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                 <div className="space-y-0.5">
-                  <Label className="text-sm">Text Testimonials</Label>
-                  <p className="text-[10px] text-muted-foreground">Always enabled for all users</p>
+                  <Label className="text-sm text-slate-700 dark:text-slate-200">Text Testimonials</Label>
+                  <p className="text-[10px] text-muted-foreground dark:text-slate-400">Always enabled for all users</p>
                 </div>
-                <Badge variant="outline" className="text-[9px] bg-green-50 text-green-600 border-green-200">FREE</Badge>
+                <Badge variant="outline" className="text-[9px] bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-700">FREE</Badge>
               </div>
               
               {/* Video Testimonials - STARTER */}
               <FeatureGate featureKey="edit_form.form_features" showBadge={false}>
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm">Video Testimonials</Label>
+                    <Label className="text-sm text-slate-700 dark:text-slate-200">Video Testimonials</Label>
                     <FeatureIndicator featureKey="edit_form.form_features" size="xs" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Allow users to record videos</p>
+                  <p className="text-[10px] text-muted-foreground dark:text-slate-400">Allow users to record videos</p>
                 </div>
                 <Switch checked={formSettings.collect_video ?? true} onCheckedChange={(checked) => setFormSettings({ ...formSettings, collect_video: checked })} />
               </div>
@@ -1762,22 +1762,22 @@ const EditFormTab = ({
               
               {/* Photo/Image - STARTER */}
               <FeatureGate featureKey="edit_form.form_features" showBadge={false}>
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm">Photo/Image</Label>
+                    <Label className="text-sm text-slate-700 dark:text-slate-200">Photo/Image</Label>
                     <FeatureIndicator featureKey="edit_form.form_features" size="xs" />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">Allow image uploads</p>
+                  <p className="text-[10px] text-muted-foreground dark:text-slate-400">Allow image uploads</p>
                 </div>
                 <Switch checked={formSettings.collect_photo ?? false} onCheckedChange={(checked) => setFormSettings({ ...formSettings, collect_photo: checked })} />
               </div>
               </FeatureGate>
 
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border">
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
                 <div className="space-y-0.5">
-                  <Label className="text-sm">Star Rating</Label>
-                  <p className="text-[10px] text-muted-foreground">Collect 1-5 star ratings</p>
+                  <Label className="text-sm text-slate-700 dark:text-slate-200">Star Rating</Label>
+                  <p className="text-[10px] text-muted-foreground dark:text-slate-400">Collect 1-5 star ratings</p>
                 </div>
                 <Switch checked={formSettings.collect_star_rating} onCheckedChange={(checked) => setFormSettings({ ...formSettings, collect_star_rating: checked })} />
               </div>

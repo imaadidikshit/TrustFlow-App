@@ -18,6 +18,7 @@ import {
   Eye, MousePointerClick, TrendingUp, Loader2, Save, Copy, Check, 
   Info, Code2, Sparkles, RefreshCw, BarChart3
 } from 'lucide-react';
+import { StarLoaderSVG } from '@/components/BrandedLoader';
 import { toast } from 'sonner';
 import {
   AreaChart,
@@ -37,13 +38,13 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || 'https://trust-flow-app.ve
 // --- KPI Card Component ---
 const KPICard = ({ title, value, icon: Icon, color, loading, subtitle }) => {
   const colorStyles = {
-    violet: 'bg-violet-50 text-violet-600 border-violet-100',
-    emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-    amber: 'bg-amber-50 text-amber-600 border-amber-100',
+    violet: 'bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 border-violet-100 dark:border-violet-800',
+    emerald: 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800',
+    amber: 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800',
   };
 
   return (
-    <Card className="bg-white border shadow-sm hover:shadow-md transition-shadow">
+    <Card className="bg-white dark:bg-slate-800/90 border dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="pt-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -70,8 +71,8 @@ const KPICard = ({ title, value, icon: Icon, color, loading, subtitle }) => {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 backdrop-blur-sm border rounded-lg shadow-lg p-3 min-w-[140px]">
-        <p className="text-sm font-medium text-gray-900 mb-2">{label}</p>
+      <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border dark:border-slate-700 rounded-lg shadow-lg p-3 min-w-[140px]">
+        <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center justify-between gap-4 text-sm">
             <span className="flex items-center gap-2">
@@ -97,6 +98,21 @@ const CTADashboardTab = ({ spaceId }) => {
   const [saving, setSaving] = useState(false);
   const [dateRange, setDateRange] = useState('7d');
   const [copied, setCopied] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Detect dark mode
+  useEffect(() => {
+    const checkDarkMode = () => {
+      setIsDarkMode(document.documentElement.classList.contains('dark'));
+    };
+    checkDarkMode();
+    
+    // Watch for changes
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
   
   // Analytics Data
   const [analytics, setAnalytics] = useState({
@@ -223,10 +239,10 @@ const CTADashboardTab = ({ spaceId }) => {
         
         <div className="flex items-center gap-3">
           <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-[140px] bg-white">
+            <SelectTrigger className="w-[140px] bg-white dark:bg-slate-800 dark:border-slate-600">
               <SelectValue placeholder="Select range" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
               <SelectItem value="7d">Last 7 Days</SelectItem>
               <SelectItem value="30d">Last 30 Days</SelectItem>
               <SelectItem value="all">All Time</SelectItem>
@@ -273,7 +289,7 @@ const CTADashboardTab = ({ spaceId }) => {
       </div>
 
       {/* --- Chart Section --- */}
-      <Card className="bg-white border shadow-sm">
+      <Card className="bg-white dark:bg-slate-800/90 border dark:border-slate-700 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-medium">Performance Over Time</CardTitle>
           <CardDescription>
@@ -283,7 +299,7 @@ const CTADashboardTab = ({ spaceId }) => {
         <CardContent>
           {loading ? (
             <div className="h-[300px] flex items-center justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-violet-600" />
+              <StarLoaderSVG size={40} />
             </div>
           ) : formattedChartData.length === 0 ? (
             <div className="h-[300px] flex flex-col items-center justify-center text-center">
@@ -308,23 +324,24 @@ const CTADashboardTab = ({ spaceId }) => {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <CartesianGrid strokeDasharray="3 3" stroke={isDarkMode ? '#334155' : '#e5e7eb'} />
                 <XAxis 
                   dataKey="date" 
-                  tick={{ fontSize: 12 }} 
+                  tick={{ fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#64748b' }} 
                   tickLine={false}
-                  axisLine={{ stroke: '#e5e7eb' }}
+                  axisLine={{ stroke: isDarkMode ? '#334155' : '#e5e7eb' }}
                 />
                 <YAxis 
-                  tick={{ fontSize: 12 }} 
+                  tick={{ fontSize: 12, fill: isDarkMode ? '#94a3b8' : '#64748b' }} 
                   tickLine={false}
-                  axisLine={{ stroke: '#e5e7eb' }}
+                  axisLine={{ stroke: isDarkMode ? '#334155' : '#e5e7eb' }}
                   allowDecimals={false}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend 
                   wrapperStyle={{ paddingTop: '20px' }}
                   iconType="circle"
+                  formatter={(value) => <span className="text-slate-600 dark:text-slate-300">{value}</span>}
                 />
                 <Area
                   type="monotone"
@@ -351,7 +368,7 @@ const CTADashboardTab = ({ spaceId }) => {
       </Card>
 
       {/* --- CTA Configuration Section --- */}
-      <Card className="bg-white border shadow-sm">
+      <Card className="bg-white dark:bg-slate-800/90 border dark:border-slate-700 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-medium flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-violet-600" />
@@ -363,12 +380,12 @@ const CTADashboardTab = ({ spaceId }) => {
         </CardHeader>
         <CardContent>
           <Tabs value={configTab} onValueChange={setConfigTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="easy" className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2 mb-6 dark:bg-slate-700/50">
+              <TabsTrigger value="easy" className="flex items-center gap-2 dark:data-[state=active]:bg-slate-600">
                 <Sparkles className="w-4 h-4" />
                 Easy Method
               </TabsTrigger>
-              <TabsTrigger value="advanced" className="flex items-center gap-2">
+              <TabsTrigger value="advanced" className="flex items-center gap-2 dark:data-[state=active]:bg-slate-600">
                 <Code2 className="w-4 h-4" />
                 Advanced
               </TabsTrigger>
@@ -376,9 +393,9 @@ const CTADashboardTab = ({ spaceId }) => {
 
             {/* Easy Method Tab */}
             <TabsContent value="easy" className="space-y-4">
-              <Alert className="bg-violet-50 border-violet-200">
-                <Info className="h-4 w-4 text-violet-600" />
-                <AlertDescription className="text-violet-800">
+              <Alert className="bg-violet-50 dark:bg-violet-900/30 border-violet-200 dark:border-violet-800">
+                <Info className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                <AlertDescription className="text-violet-800 dark:text-violet-300">
                   Simply add this attribute to any button or link you want to track. No CSS knowledge required!
                 </AlertDescription>
               </Alert>
@@ -386,7 +403,7 @@ const CTADashboardTab = ({ spaceId }) => {
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Add this attribute to your CTA button:</Label>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-gray-100 px-4 py-3 rounded-lg font-mono text-sm border">
+                  <code className="flex-1 bg-gray-100 dark:bg-slate-700 px-4 py-3 rounded-lg font-mono text-sm border dark:border-slate-600 dark:text-slate-200">
                     data-tf-conversion="true"
                   </code>
                   <Button
@@ -399,7 +416,7 @@ const CTADashboardTab = ({ spaceId }) => {
                 </div>
               </div>
 
-              <div className="bg-gray-50 rounded-lg p-4 border">
+              <div className="bg-gray-50 dark:bg-slate-700/50 rounded-lg p-4 border dark:border-slate-600">
                 <p className="text-sm font-medium mb-2">Example:</p>
                 <pre className="bg-gray-900 text-gray-100 p-3 rounded-md text-sm overflow-x-auto">
 {`<button data-tf-conversion="true" class="your-cta-btn">
@@ -411,9 +428,9 @@ const CTADashboardTab = ({ spaceId }) => {
 
             {/* Advanced Method Tab */}
             <TabsContent value="advanced" className="space-y-4">
-              <Alert className="bg-amber-50 border-amber-200">
-                <Info className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-800">
+              <Alert className="bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800">
+                <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <AlertDescription className="text-amber-800 dark:text-amber-300">
                   Use a custom CSS selector to track specific elements. This overrides the easy method.
                 </AlertDescription>
               </Alert>
@@ -428,7 +445,7 @@ const CTADashboardTab = ({ spaceId }) => {
                     placeholder="#signup-btn, .buy-now, [data-action='purchase']"
                     value={ctaSelector}
                     onChange={(e) => setCtaSelector(e.target.value)}
-                    className="flex-1 bg-white"
+                    className="flex-1 bg-white dark:bg-slate-700 dark:border-slate-600"
                   />
                   <Button
                     onClick={saveCTASelector}
@@ -446,18 +463,18 @@ const CTADashboardTab = ({ spaceId }) => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Examples: <code className="bg-gray-100 px-1 rounded">#signup-btn</code>, 
-                  <code className="bg-gray-100 px-1 rounded ml-1">.cta-button</code>, 
-                  <code className="bg-gray-100 px-1 rounded ml-1">button.primary</code>
+                  Examples: <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded">#signup-btn</code>, 
+                  <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded ml-1">.cta-button</code>, 
+                  <code className="bg-gray-100 dark:bg-slate-700 px-1 rounded ml-1">button.primary</code>
                 </p>
               </div>
 
               {ctaSelector && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
                   <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-green-800">
-                      Active selector: <code className="bg-green-100 px-1 rounded">{ctaSelector}</code>
+                    <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-sm text-green-800 dark:text-green-300">
+                      Active selector: <code className="bg-green-100 dark:bg-green-800/50 px-1 rounded">{ctaSelector}</code>
                     </span>
                   </div>
                 </div>
@@ -468,15 +485,15 @@ const CTADashboardTab = ({ spaceId }) => {
       </Card>
 
       {/* --- How It Works Section --- */}
-      <Card className="bg-gradient-to-br from-violet-50 to-white border shadow-sm">
+      <Card className="bg-gradient-to-br from-violet-50 to-white dark:from-slate-800 dark:to-slate-800/90 border dark:border-slate-700 shadow-sm">
         <CardHeader>
           <CardTitle className="text-base font-medium">How Tracking Works</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-violet-600">1</span>
+              <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center shrink-0">
+                <span className="text-sm font-semibold text-violet-600 dark:text-violet-400">1</span>
               </div>
               <div>
                 <p className="font-medium text-sm">Widget Loads</p>
@@ -486,8 +503,8 @@ const CTADashboardTab = ({ spaceId }) => {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-emerald-600">2</span>
+              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
+                <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">2</span>
               </div>
               <div>
                 <p className="font-medium text-sm">User Clicks CTA</p>
@@ -497,8 +514,8 @@ const CTADashboardTab = ({ spaceId }) => {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                <span className="text-sm font-semibold text-amber-600">3</span>
+              <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">3</span>
               </div>
               <div>
                 <p className="font-medium text-sm">Measure ROI</p>

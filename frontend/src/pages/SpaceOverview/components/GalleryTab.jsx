@@ -236,10 +236,10 @@ const PresetCard = ({ preset, isSelected, onSelect, isApplying, isLocked }) => {
           {/* Preset Info */}
           <div className="p-4">
             <div className="flex items-start justify-between mb-1">
-              <h3 className="font-semibold text-sm text-slate-900 flex items-center gap-1.5">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                 {preset.name}
                 {preset.isDefault && (
-                  <Badge variant="outline" className="text-[9px] border-green-200 bg-green-50 text-green-700 px-1">
+                  <Badge variant="outline" className="text-[9px] border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1">
                     DEFAULT
                   </Badge>
                 )}
@@ -249,21 +249,21 @@ const PresetCard = ({ preset, isSelected, onSelect, isApplying, isLocked }) => {
                   </Badge>
                 )}
               </h3>
-              <Badge variant="secondary" className="text-[10px] capitalize bg-slate-100">
+              <Badge variant="secondary" className="text-[10px] capitalize bg-slate-100 dark:bg-slate-700 dark:text-slate-300">
                 {preset.settings.layout}
               </Badge>
             </div>
-            <p className="text-xs text-slate-500 line-clamp-2">{preset.description}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{preset.description}</p>
             
             {/* Custom Heading Preview */}
             {(preset.customHeading || preset.settings?.headingText) && (
-              <div className="mt-2 p-2 bg-gradient-to-r from-violet-50 to-purple-50 rounded-md border border-violet-100">
+              <div className="mt-2 p-2 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/30 rounded-md border border-violet-100 dark:border-violet-800">
                 <p className="text-[9px] text-violet-400 uppercase tracking-wide font-medium">Preview Text</p>
-                <p className="text-[11px] font-semibold text-violet-800 truncate">
+                <p className="text-[11px] font-semibold text-violet-800 dark:text-violet-300 truncate">
                   {preset.customHeading || preset.settings?.headingText}
                 </p>
                 {(preset.customSubheading || preset.settings?.subheadingText) && (
-                  <p className="text-[10px] text-violet-600 truncate">
+                  <p className="text-[10px] text-violet-600 dark:text-violet-400 truncate">
                     {preset.customSubheading || preset.settings?.subheadingText}
                   </p>
                 )}
@@ -273,22 +273,22 @@ const PresetCard = ({ preset, isSelected, onSelect, isApplying, isLocked }) => {
             {/* Quick Info Tags */}
             <div className="flex items-center gap-2 mt-3 flex-wrap">
               {preset.settings.autoScroll && (
-                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
                   Auto-scroll
                 </span>
               )}
               {preset.settings.smoothContinuousScroll && (
-                <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">
                   Smooth Flow
                 </span>
               )}
               {preset.settings.popupsEnabled && (
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded-full">
                   Popups
                 </span>
               )}
               {preset.settings.theme === 'dark' && (
-                <span className="text-[10px] bg-slate-800 text-white px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] bg-slate-800 dark:bg-slate-600 text-white px-1.5 py-0.5 rounded-full">
                   Dark
                 </span>
               )}
@@ -626,17 +626,17 @@ const CardLayoutCard = ({ layout, isSelected, onSelect, isApplying, theme, isLoc
           {/* Layout Info */}
           <div className="p-4">
             <div className="flex items-start justify-between mb-1">
-              <h3 className="font-semibold text-sm text-slate-900 flex items-center gap-2">
+              <h3 className="font-semibold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <span className="text-base">{layout.icon}</span>
                 {layout.name}
                 {layout.isDefault && (
-                  <Badge variant="outline" className="text-[9px] border-green-200 bg-green-50 text-green-700 px-1">
+                  <Badge variant="outline" className="text-[9px] border-green-200 dark:border-green-700 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1">
                     DEFAULT
                   </Badge>
                 )}
               </h3>
             </div>
-            <p className="text-xs text-slate-500 line-clamp-2">{layout.description}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{layout.description}</p>
           </div>
         </CardContent>
       </Card>
@@ -1253,10 +1253,10 @@ const GalleryTab = ({
     <div className="space-y-4 sm:space-y-6 relative">
 
       {/* Header with Unsaved Changes Indicator + Save/Discard Buttons */}
-      <div className="flex flex-col gap-3 sm:gap-4 sticky top-0 z-40 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-3 sm:-mx-6 sm:px-6 border-b border-slate-100">
+      <div className="flex flex-col gap-3 sm:gap-4 sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm -mx-4 px-4 py-3 sm:-mx-6 sm:px-6 border-b border-slate-100 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-violet-500" />
               Design Gallery
               {hasUnsavedChanges && (
@@ -1265,7 +1265,7 @@ const GalleryTab = ({
                 </Badge>
               )}
             </h2>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1">
+            <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
               Choose presets and card layouts • Changes preview instantly
             </p>
           </div>
@@ -1275,17 +1275,17 @@ const GalleryTab = ({
             {/* Current selections badges - hidden on mobile when unsaved */}
             <div className="hidden sm:flex items-center gap-2">
               {currentPresetId && currentPresetId !== 'default' && (
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-violet-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-violet-200">
-                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
-                  <span className="text-xs sm:text-sm text-violet-700 font-medium">
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-violet-50 dark:bg-violet-900/30 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-violet-200 dark:border-violet-700">
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" />
+                  <span className="text-xs sm:text-sm text-violet-700 dark:text-violet-300 font-medium">
                     {getPresetById(currentPresetId)?.name || 'Custom'}
                   </span>
                 </div>
               )}
               {currentCardStyle && currentCardStyle !== 'default' && (
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-emerald-200">
-                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
-                  <span className="text-xs sm:text-sm text-emerald-700 font-medium">
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-emerald-50 dark:bg-emerald-900/30 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                  <CreditCard className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span className="text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 font-medium">
                     {getCardLayoutById(currentCardStyle)?.name || 'Custom'}
                   </span>
                 </div>
@@ -1305,7 +1305,7 @@ const GalleryTab = ({
                     variant="outline"
                     size="sm"
                     onClick={handleDiscardChanges}
-                    className="bg-white shadow-sm border-slate-300 hover:bg-slate-50 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
+                    className="bg-white dark:bg-slate-700 shadow-sm border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 dark:text-slate-200 h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm"
                   >
                     <RotateCcw className="w-3.5 h-3.5 sm:mr-1.5" />
                     <span className="hidden sm:inline">Discard</span>
@@ -1455,7 +1455,7 @@ const GalleryTab = ({
 
       {/* Section Tabs - Premium Styled */}
       <Tabs value={selectedSection} onValueChange={setSelectedSection} className="w-full">
-        <div className="bg-white/80 backdrop-blur-sm rounded-xl p-1 border border-slate-200 shadow-sm mb-4 sm:mb-6 inline-flex">
+        <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-1 border border-slate-200 dark:border-slate-700 shadow-sm mb-4 sm:mb-6 inline-flex">
           <TabsList className="bg-transparent gap-1 h-auto p-0">
             <TabsTrigger 
               value="presets" 
@@ -1487,7 +1487,7 @@ const GalleryTab = ({
         {/* PRESETS SECTION */}
         <TabsContent value="presets" className="space-y-4 sm:space-y-6">
           {/* Category Filter - Sticky on mobile */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none">
             {PRESET_CATEGORIES.map((category) => {
               const IconComponent = CATEGORY_ICONS[category.icon];
               const isActive = selectedCategory === category.id;
@@ -1501,7 +1501,7 @@ const GalleryTab = ({
                   className={`transition-all text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ${
                     isActive 
                       ? 'bg-violet-600 hover:bg-violet-700 text-white shadow-md' 
-                      : 'hover:bg-slate-100 hover:border-slate-300'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 dark:border-slate-600 dark:text-slate-300'
                   }`}
                 >
                   {IconComponent && <IconComponent className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" />}
@@ -1544,14 +1544,14 @@ const GalleryTab = ({
           {/* Empty State */}
           {filteredPresets.length === 0 && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <LayoutGrid className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No presets found</h3>
-              <p className="text-slate-500 text-sm">Try selecting a different category</p>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No presets found</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Try selecting a different category</p>
               <Button 
                 variant="outline" 
-                className="mt-4"
+                className="mt-4 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
                 onClick={() => setSelectedCategory('all')}
               >
                 View all presets
@@ -1563,7 +1563,7 @@ const GalleryTab = ({
         {/* CARD LAYOUTS SECTION */}
         <TabsContent value="cards" className="space-y-4 sm:space-y-6">
           {/* Layout Category Filter - Sticky on mobile */}
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none">
             {layoutCategories.map((category) => {
               const IconComponent = category.icon;
               const isActive = selectedLayoutCategory === category.id;
@@ -1577,7 +1577,7 @@ const GalleryTab = ({
                   className={`transition-all text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ${
                     isActive 
                       ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md' 
-                      : 'hover:bg-slate-100 hover:border-slate-300'
+                      : 'hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 dark:border-slate-600 dark:text-slate-300'
                   }`}
                 >
                   {IconComponent && <IconComponent className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" />}
@@ -1616,14 +1616,14 @@ const GalleryTab = ({
           {/* Empty State */}
           {filteredLayouts.length === 0 && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CreditCard className="w-8 h-8 text-slate-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No layouts found</h3>
-              <p className="text-slate-500 text-sm">Try selecting a different category</p>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No layouts found</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Try selecting a different category</p>
               <Button 
                 variant="outline" 
-                className="mt-4"
+                className="mt-4 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
                 onClick={() => setSelectedLayoutCategory('all')}
               >
                 View all layouts
@@ -1635,14 +1635,14 @@ const GalleryTab = ({
         {/* COMBO PRESETS SECTION */}
         <TabsContent value="combos" className="space-y-4 sm:space-y-6">
           {/* Header + Category Filter - Sticky on mobile */}
-          <div className="sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none space-y-3">
+          <div className="sticky top-[60px] sm:top-0 sm:relative z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm -mx-4 px-4 py-2 sm:mx-0 sm:px-0 sm:py-0 sm:bg-transparent sm:backdrop-blur-none space-y-3">
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 rounded-lg">
-                <Layers className="w-5 h-5 text-amber-600" />
+              <div className="p-2 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/50 rounded-lg">
+                <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900 text-sm sm:text-base">Combo Packs</h3>
-                <p className="text-xs text-slate-500">Pre-matched theme + card layout combinations</p>
+                <h3 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base">Combo Packs</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Pre-matched theme + card layout combinations</p>
               </div>
               <Badge className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] sm:text-[10px] px-2 border-0">
                 {COMBO_PRESETS.length} Combos
@@ -1663,7 +1663,7 @@ const GalleryTab = ({
                     className={`transition-all text-xs sm:text-sm px-2 sm:px-3 h-7 sm:h-8 ${
                       isActive 
                         ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-md' 
-                        : 'hover:bg-slate-100 hover:border-slate-300'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 dark:border-slate-600 dark:text-slate-300'
                     }`}
                   >
                     <span className="hidden sm:inline">{category.name}</span>
@@ -1758,19 +1758,19 @@ const GalleryTab = ({
 
                       <CardContent className="p-3 sm:p-4">
                         <div className="mb-2">
-                          <h4 className="font-semibold text-slate-900 text-sm sm:text-base line-clamp-1 group-hover:text-amber-600 transition-colors">
+                          <h4 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base line-clamp-1 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                             {combo.name}
                           </h4>
-                          <p className="text-[10px] sm:text-xs text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
+                          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
                             {combo.description}
                           </p>
                         </div>
 
                         {/* Custom Heading Preview */}
                         {combo.customHeading && (
-                          <div className="mt-2 p-2 bg-slate-50 rounded-md">
-                            <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase tracking-wide">Heading</p>
-                            <p className="text-[10px] sm:text-xs font-medium text-slate-700 truncate">{combo.customHeading}</p>
+                          <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-700/50 rounded-md">
+                            <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wide">Heading</p>
+                            <p className="text-[10px] sm:text-xs font-medium text-slate-700 dark:text-slate-300 truncate">{combo.customHeading}</p>
                           </div>
                         )}
 
@@ -1819,11 +1819,11 @@ const GalleryTab = ({
           {/* Empty State */}
           {filteredCombos.length === 0 && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Layers className="w-8 h-8 text-amber-400" />
               </div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">No combos found</h3>
-              <p className="text-slate-500 text-sm">Try selecting a different category</p>
+              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">No combos found</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">Try selecting a different category</p>
               <Button 
                 variant="outline" 
                 className="mt-4"
@@ -1837,16 +1837,16 @@ const GalleryTab = ({
       </Tabs>
 
       {/* Pro Tip Card */}
-      <Card className="bg-gradient-to-r from-violet-50 to-purple-50 border-violet-200">
+      <Card className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-900/30 dark:to-purple-900/30 border-violet-200 dark:border-violet-700">
         <CardContent className="p-3 sm:p-4">
           <div className="flex flex-col sm:flex-row items-start gap-3">
             <div className="flex items-start gap-3 flex-1">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-violet-100 dark:bg-violet-800/50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-600 dark:text-violet-400" />
               </div>
               <div className="flex-1">
-                <h4 className="font-medium text-slate-900 text-xs sm:text-sm">Pro Tip</h4>
-                <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5 leading-relaxed">
+                <h4 className="font-medium text-slate-900 dark:text-white text-xs sm:text-sm">Pro Tip</h4>
+                <p className="text-[10px] sm:text-xs text-slate-600 dark:text-slate-300 mt-0.5 leading-relaxed">
                   After applying a preset or card layout, go to the <strong>Widget Designer</strong> tab to fine-tune 
                   colors, fonts, animations, and other settings.
                 </p>
@@ -1855,7 +1855,7 @@ const GalleryTab = ({
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-violet-600 hover:text-violet-700 flex-shrink-0 text-xs sm:text-sm h-7 sm:h-8 w-full sm:w-auto"
+              className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 flex-shrink-0 text-xs sm:text-sm h-7 sm:h-8 w-full sm:w-auto"
               onClick={() => setActiveTab('widget')}
             >
               <span className="mr-1">Go to Designer</span>

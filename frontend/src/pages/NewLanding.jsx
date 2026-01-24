@@ -8,6 +8,7 @@
  */
 
 import React, { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { MarketingLayout } from '@/components/marketing';
@@ -18,6 +19,7 @@ import BentoGrid from '@/components/marketing/BentoGrid';
 import HowItWorks from '@/components/marketing/HowItWorks';
 import TestimonialGrid from '@/components/marketing/TestimonialGrid';
 import CTASection from '@/components/marketing/CTASection';
+import BrandedLoader from '@/components/BrandedLoader';
 
 const NewLanding = () => {
   const { user, loading } = useAuth();
@@ -33,8 +35,8 @@ const NewLanding = () => {
   // Show loading spinner while checking auth status
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-slate-950">
-        <div className="w-10 h-10 border-4 border-violet-600 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <BrandedLoader size="large" />
       </div>
     );
   }
@@ -45,7 +47,12 @@ const NewLanding = () => {
   }
 
   return (
-    <MarketingLayout>
+    <>
+      <Helmet>
+        <title>TrustWall - Collect & Display Testimonials That Convert</title>
+        <meta name="description" content="Transform customer love into powerful social proof. Collect, manage, and display authentic testimonials with beautiful widgets." />
+      </Helmet>
+      <MarketingLayout>
       {/* Hero Section with animated background */}
       <HeroSection />
 
@@ -67,6 +74,7 @@ const NewLanding = () => {
       {/* Bottom CTA */}
       <CTASection />
     </MarketingLayout>
+    </>
   );
 };
 

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom'; 
 import { supabase } from '@/lib/supabase';
-import { Star, Play, ChevronLeft, ChevronRight, BadgeCheck, Loader2, ExternalLink, Heart, Clock, Quote } from 'lucide-react'; 
+import { Star, Play, ChevronLeft, ChevronRight, BadgeCheck, ExternalLink, Heart, Clock, Quote } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion'; 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { StarLoaderSVG } from '@/components/BrandedLoader';
 import '@/index.css';
 
 const CARD_WIDTH = 300; 
@@ -510,7 +511,7 @@ const WallOfLoveContent = ({ customSpaceId }) => {
   // This ensures embed.js detects content height > 0 during loading
   if (loading) return (
     <div ref={outerContainerRef} className="min-h-[100px] flex items-center justify-center bg-transparent">
-        <Loader2 className="w-6 h-6 animate-spin text-gray-400"/>
+        <StarLoaderSVG size={32} />
     </div>
   );
 

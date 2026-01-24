@@ -620,14 +620,18 @@ const Landing = () => {
                 
                 <div className="h-20 flex items-end gap-1">
                   {[40, 65, 45, 80, 55, 90, 70].map((h, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ height: 0 }}
-                      whileInView={{ height: `${h}%` }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.1 }}
-                      className="flex-1 bg-gradient-to-t from-green-500 to-emerald-400 rounded-t"
-                    />
+                    <div key={i} className="flex-1 flex flex-col h-full">
+                      <div className="flex-1 flex items-end">
+                        <motion.div
+                          initial={{ height: '10%', opacity: 0.3 }}
+                          whileInView={{ height: `${h}%`, opacity: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.1, duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
+                          className="w-full bg-gradient-to-t from-green-500 to-emerald-400 rounded-t shadow-sm"
+                          style={{ minHeight: '4px' }}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <div className="flex justify-between mt-1">

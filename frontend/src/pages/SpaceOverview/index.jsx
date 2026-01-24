@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { v4 as uuidv4 } from 'uuid'; 
 import { FeatureGate, PlanBadge, FeatureIndicator } from '@/components/FeatureGate';
 import { useFeature } from '@/hooks/useFeature'; 
+import BrandedLoader from '@/components/BrandedLoader';
 
 // Import Sub-components
 import InboxTab from './components/InboxTab';
@@ -345,16 +347,20 @@ const SpaceOverview = () => {
     toast.success('Link copied to clipboard!');
   };
 
-  if (authLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-violet-600" /></div>;
-  if (loading || !space) return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20"><div className="container mx-auto px-4 py-8"><div className="h-10 w-64 bg-gray-200 rounded animate-pulse mb-8" /></div></div>;
+  if (authLoading) return <BrandedLoader fullScreen={true} isLoading={true} size="large" />;
+  if (loading || !space) return <BrandedLoader fullScreen={true} isLoading={true} size="large" />;
 
   return (
-    // UPDATED: Added MASTER KEY classes to hide scrollbars for ALL children ([&_*...])
-    <div 
-      ref={scrollContainerRef}
-      className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
-      [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] 
-      [&_*::-webkit-scrollbar]:hidden [&_*]:[scrollbar-width:none] [&_*]:[-ms-overflow-style:none]">
+    <>
+      <Helmet>
+        <title>{space?.space_name || 'Space'} - TrustWall Dashboard</title>
+      </Helmet>
+      {/* UPDATED: Added MASTER KEY classes to hide scrollbars for ALL children ([&_*...]) */}
+      <div 
+        ref={scrollContainerRef}
+        className="h-screen overflow-y-auto bg-gradient-to-b from-background to-secondary/20 
+        [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] 
+        [&_*::-webkit-scrollbar]:hidden [&_*]:[scrollbar-width:none] [&_*]:[-ms-overflow-style:none]">
       
       <Toaster richColors position="bottom-right" />
 
@@ -536,6 +542,7 @@ const SpaceOverview = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 
