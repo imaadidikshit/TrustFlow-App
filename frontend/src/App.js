@@ -4,6 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "sonner";
 import BrandedLoader from "@/components/BrandedLoader";
 
 // Pages
@@ -226,6 +227,7 @@ function App() {
       <BrowserRouter>
         <CustomDomainHandler />
         <Toaster />
+        <SonnerToaster position="top-center" richColors closeButton />
       </BrowserRouter>
     );
   }
@@ -238,6 +240,7 @@ function App() {
           <SubscriptionProvider>
             <AppRoutes />
             <Toaster />
+            <SonnerToaster position="top-center" richColors closeButton />
           </SubscriptionProvider>
         </AuthProvider>
       </BrowserRouter>

@@ -3,7 +3,7 @@
  * Features: Slide-in from right, smooth animations, full profile management
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Camera, Mail, AlertCircle, User, Settings, 
@@ -126,7 +126,59 @@ const ProfileSlidePanel = ({
       setNewEmailToVerify('');
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen, profile, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]); // Only depend on isOpen - profile/user are read on open only
+  
+  // Cleanup blob URL when component unmounts or when avatarUrl changes
+  useEffect(() => {
+    return () => {
+      // Cleanup blob URL on unmount to prevent memory leaks
+      if (avatarUrl && avatarUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+  }, [avatarUrl]);
+  
+  // Handle file selection - called from file input onChange
+  const onFileChange = useCallback((e) => {
+    try {
+      const file = e.target?.files?.[0];
+      if (!file) return;
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        sonnerToast.error('Invalid file type', { description: 'Please select an image file' });
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        sonnerToast.error('File too large', { description: 'Please select an image under 5MB' });
+        return;
+      }
+      
+      // Create preview URL and set state
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarFile(file);
+      setAvatarUrl(previewUrl);
+      sonnerToast.success('Image selected', { description: 'Click Save to upload your new profile picture' });
+    } catch (error) {
+      console.error('File select error:', error);
+      sonnerToast.error('Failed to select image', { description: 'Please try again' });
+    } finally {
+      // Reset input value so same file can be selected again
+      if (e.target) {
+        e.target.value = '';
+      }
+    }
+  }, []);
+  
+  // Trigger file picker
+  const triggerFilePicker = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, []);
   
   // Theme Change Handler - uses AuthContext for DB persistence
   const handleThemeChange = (newTheme) => {
@@ -164,18 +216,6 @@ const ProfileSlidePanel = ({
     }
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        sonnerToast.error('File too large', { description: 'Please select an image under 5MB' });
-        return;
-      }
-      setAvatarFile(file);
-      setAvatarUrl(URL.createObjectURL(file));
-    }
-  };
-
   const handleSaveChanges = async () => {
     setLoading(true);
     setEmailError('');
@@ -206,14 +246,30 @@ const ProfileSlidePanel = ({
       // Upload photo
       let uploadedAvatarUrl = avatarUrl;
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const { error: uploadError } = await safeSupabaseCall(
-          supabase.storage.from('avatars').upload(fileName, avatarFile)
-        );
-        if (uploadError) throw uploadError;
-        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
-        uploadedAvatarUrl = publicUrl;
+        try {
+          const fileExt = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+          const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+          
+          // Upload to Supabase storage
+          const { error: uploadError } = await safeSupabaseCall(
+            supabase.storage.from('avatars').upload(fileName, avatarFile, {
+              cacheControl: '3600',
+              upsert: false
+            })
+          );
+          
+          if (uploadError) {
+            console.error('Avatar upload error:', uploadError);
+            // Don't throw, just skip avatar update and continue with other changes
+            sonnerToast.error('Failed to upload image', { description: 'Profile will be saved without new image' });
+          } else {
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+            uploadedAvatarUrl = publicUrl;
+          }
+        } catch (avatarError) {
+          console.error('Avatar upload exception:', avatarError);
+          sonnerToast.error('Failed to upload image', { description: 'Profile will be saved without new image' });
+        }
       }
 
       // Save profile
@@ -251,6 +307,11 @@ const ProfileSlidePanel = ({
       if (onProfileUpdate) await onProfileUpdate();
       setIsEditing(false);
       setEmailChangeStep('idle');
+      // Clear file input after successful save
+      setAvatarFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
 
     } catch (error) {
       console.error("Profile Save Error:", error);
@@ -334,12 +395,38 @@ const ProfileSlidePanel = ({
   const planInfo = getPlanInfo();
   const PlanIcon = planInfo.icon;
 
+  // Safe close handler - checks for unsaved changes
+  const handleSafeClose = useCallback(() => {
+    // Don't close if in editing mode with unsaved changes
+    if (isEditing && (avatarFile || fullName !== (profile?.full_name || '') || email !== (user?.email || ''))) {
+      sonnerToast.warning('Unsaved changes', { description: 'Please save or cancel your changes first' });
+      return;
+    }
+    onClose();
+  }, [isEditing, avatarFile, fullName, email, profile?.full_name, user?.email, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Hidden File Input - positioned off-screen but accessible */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            onChange={onFileChange}
+            style={{
+              position: 'fixed',
+              top: '-9999px',
+              left: '-9999px',
+              opacity: 0,
+              pointerEvents: 'none'
+            }}
+            aria-hidden="true"
+          />
+          
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -347,7 +434,10 @@ const ProfileSlidePanel = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSafeClose();
+            }}
           />
 
           {/* Slide Panel */}
@@ -357,6 +447,7 @@ const ProfileSlidePanel = ({
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="relative">
@@ -369,8 +460,12 @@ const ProfileSlidePanel = ({
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={onClose}
-                className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors backdrop-blur-sm"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSafeClose();
+                }}
+                className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors backdrop-blur-sm z-10"
               >
                 <X className="w-5 h-5" />
               </motion.button>
@@ -396,19 +491,13 @@ const ProfileSlidePanel = ({
                     <motion.button
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-1 right-1 p-2.5 bg-violet-600 text-white rounded-full shadow-lg hover:bg-violet-700 transition-colors"
+                      type="button"
+                      onClick={triggerFilePicker}
+                      className="absolute bottom-1 right-1 p-2.5 bg-violet-600 text-white rounded-full shadow-lg hover:bg-violet-700 transition-colors z-10"
                     >
                       <Camera className="w-4 h-4" />
                     </motion.button>
                   )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                  />
                 </div>
               </div>
 
@@ -1032,9 +1121,66 @@ const ProfileSlidePanel = ({
 
                     {/* Billing Action */}
                     <button
-                      onClick={() => {
-                        onClose();
-                        onNavigateToPricing?.();
+                      onClick={async () => {
+                        if (planInfo.id === 'free') {
+                          // Free users go to pricing page
+                          onClose();
+                          onNavigateToPricing?.();
+                        } else {
+                          // Paid users go to customer portal
+                          try {
+                            sonnerToast.loading('Opening subscription portal...');
+                            
+                            const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+                            
+                            if (sessionError || !sessionData?.session?.access_token) {
+                              sonnerToast.dismiss();
+                              sonnerToast.error('Session expired. Please log in again.');
+                              return;
+                            }
+                            
+                            const accessToken = sessionData.session.access_token;
+                            const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 
+                                               process.env.REACT_APP_API_URL || 
+                                               'https://trust-flow-app.vercel.app';
+                            
+                            const response = await fetch(`${BACKEND_URL}/api/create-portal-session`, {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${accessToken}`,
+                              },
+                              body: JSON.stringify({ user_id: user?.id }),
+                            });
+                            
+                            const data = await response.json();
+                            sonnerToast.dismiss();
+                            
+                            if (!response.ok) {
+                              // Handle specific errors
+                              if (response.status === 401) {
+                                sonnerToast.error('Session expired. Please log in again.');
+                                return;
+                              }
+                              if (response.status === 403) {
+                                sonnerToast.error('Access denied.');
+                                return;
+                              }
+                              sonnerToast.error(data.detail || 'Unable to open billing portal');
+                              return;
+                            }
+                            
+                            if (data.url) {
+                              window.location.href = data.url;
+                            } else {
+                              sonnerToast.error('Unable to open billing portal. Please try from dashboard.');
+                            }
+                          } catch (error) {
+                            console.error('Portal error:', error);
+                            sonnerToast.dismiss();
+                            sonnerToast.error('Unable to open billing portal. Please check your connection.');
+                          }
+                        }
                       }}
                       className="w-full flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors group"
                     >
@@ -1093,7 +1239,24 @@ const ProfileSlidePanel = ({
                     transition={{ duration: 0.2 }}
                     className="space-y-4"
                   >
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-4">
+                    {/* Under Maintenance Banner */}
+                    <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200/50 dark:border-amber-800/50">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0">
+                          <Settings className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                            Under Maintenance
+                          </p>
+                          <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-1">
+                            Notification preferences are currently being updated. Please check back soon.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-4 opacity-50 pointer-events-none">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-slate-900 dark:text-white">
@@ -1106,6 +1269,7 @@ const ProfileSlidePanel = ({
                         <Switch
                           checked={emailNotifications}
                           onCheckedChange={setEmailNotifications}
+                          disabled
                         />
                       </div>
                       <Separator />
@@ -1121,6 +1285,7 @@ const ProfileSlidePanel = ({
                         <Switch
                           checked={marketingEmails}
                           onCheckedChange={setMarketingEmails}
+                          disabled
                         />
                       </div>
                     </div>

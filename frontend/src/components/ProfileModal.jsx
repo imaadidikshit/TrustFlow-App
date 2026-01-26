@@ -59,11 +59,57 @@ const ProfileModal = ({ isOpen, onClose, user, profile, onProfileUpdate }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
+  // Cleanup blob URL when component unmounts or when avatarUrl changes
+  useEffect(() => {
+    return () => {
+      // Cleanup blob URL on unmount to prevent memory leaks
+      if (avatarUrl && avatarUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarUrl);
+      }
+    };
+  }, [avatarUrl]);
+
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    try {
+      const file = e.target?.files?.[0];
+      if (!file) return;
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image file",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select an image under 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create preview URL and set state
+      const previewUrl = URL.createObjectURL(file);
       setAvatarFile(file);
-      setAvatarUrl(URL.createObjectURL(file)); // Preview logic works perfectly with UserProfileImage
+      setAvatarUrl(previewUrl);
+    } catch (error) {
+      console.error('File select error:', error);
+      toast({
+        title: "Failed to select image",
+        description: "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      // Reset input value so same file can be selected again
+      if (e.target) {
+        e.target.value = '';
+      }
     }
   };
 
