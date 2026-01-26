@@ -25,8 +25,9 @@ import {
   ArrowLeft, Heart, Award, TrendingUp, Lock, ExternalLink, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 import { usePlanCheck } from '@/hooks/useFeature';
-import { fetchAllPlans } from '@/contexts/SubscriptionContext';
+import { fetchAllPlans, useSubscription } from '@/contexts/SubscriptionContext';
 import { MarketingLayout } from '@/components/marketing';
 import confetti from 'canvas-confetti';
 
@@ -169,6 +170,7 @@ const PricingPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { currentPlanId, isLoading: planLoading } = usePlanCheck();
+  const { subscription } = useSubscription();
   
   const [isYearly, setIsYearly] = useState(false);
   const [currency, setCurrency] = useState('usd');
@@ -273,6 +275,39 @@ const PricingPage = () => {
   const handleSelectPlan = async (planId) => {
     if (planId === 'free') return;
     
+    // TASK 1: Prevent duplicate subscriptions - redirect active subscribers to customer portal
+    if (subscription && subscription.status === 'active' && subscription.plan_id !== 'free') {
+      toast.info('You already have an active subscription. Redirecting to manage your plan...');
+      // Redirect to customer portal to upgrade/switch plans
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 
+                           process.env.REACT_APP_API_URL || 
+                           'https://trust-flow-app.vercel.app';
+        
+        const response = await fetch(`${BACKEND_URL}/api/create-portal-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ user_id: user.id }),
+        });
+        
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          toast.error('Unable to open billing portal. Please try from your dashboard.');
+        }
+      } catch (error) {
+        console.error('Portal redirect error:', error);
+        toast.error('Unable to open billing portal. Please try from your dashboard.');
+      }
+      return;
+    }
+    
     // Find the selected plan from our plans array
     const selectedPlan = plans.find(p => p.id === planId);
     if (!selectedPlan) {
@@ -340,10 +375,11 @@ const PricingPage = () => {
       const data = await response.json();
       
       if (data.url) {
-        // Show success toast before redirect
+        // Show success toast before checkout
         toast.success('Redirecting to secure checkout...', { duration: 2000 });
         
-        // Small delay for toast visibility, then redirect
+        // Direct redirect to Lemon Squeezy checkout
+        // Note: Overlay disabled due to Stripe iframe restrictions causing 404 errors
         setTimeout(() => {
           window.location.href = data.url;
         }, 500);

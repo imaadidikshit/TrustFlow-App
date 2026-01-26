@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Header
 from fastapi.responses import Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -13,6 +13,8 @@ from datetime import datetime, timezone, timedelta
 import hmac
 import hashlib
 import httpx
+import jwt
+import base64
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -31,6 +33,13 @@ LEMON_SQUEEZY_API_KEY = os.environ.get('LEMON_SQUEEZY_API_KEY', '')
 LEMON_SQUEEZY_STORE_ID = os.environ.get('LEMON_SQUEEZY_STORE_ID', '')
 LEMON_SQUEEZY_WEBHOOK_SECRET = os.environ.get('LEMON_SQUEEZY_WEBHOOK_SECRET', '')
 
+# Supabase JWT Secret for token verification (base64 decode it)
+_jwt_secret_raw = os.environ.get('SUPABASE_JWT_SECRET', '')
+try:
+    SUPABASE_JWT_SECRET = base64.b64decode(_jwt_secret_raw) if _jwt_secret_raw else b''
+except Exception:
+    SUPABASE_JWT_SECRET = _jwt_secret_raw.encode() if _jwt_secret_raw else b''
+
 # Create the main app
 app = FastAPI(title="TrustFlow API")
 
@@ -43,6 +52,61 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+
+# --- JWT Token Verification Helper ---
+async def verify_supabase_token(authorization: str = Header(None)) -> dict:
+    """
+    Verify Supabase JWT token from Authorization header.
+    Uses Supabase's auth.get_user() to validate the token.
+    Returns the decoded token payload with user info.
+    Raises HTTPException if token is invalid or missing.
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header missing. Please log in."
+        )
+    
+    # Extract token from "Bearer <token>" format
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authorization header format. Expected 'Bearer <token>'."
+        )
+    
+    token = parts[1]
+    
+    try:
+        # Use Supabase's built-in auth verification
+        # This is the most reliable way to verify Supabase tokens
+        user_response = supabase.auth.get_user(token)
+        
+        if not user_response or not user_response.user:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication token. Please log in again."
+            )
+        
+        user = user_response.user
+        logger.info(f"Token verified successfully for user: {user.id}")
+        
+        # Return user info in a format similar to JWT payload
+        return {
+            "sub": user.id,
+            "email": user.email,
+            "user_metadata": user.user_metadata if hasattr(user, 'user_metadata') else {}
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning(f"Token verification failed: {e}")
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authentication token. Please log in again."
+        )
 
 
 # Models
@@ -101,6 +165,9 @@ class LemonSqueezyCheckoutRequest(BaseModel):
     user_id: str
     user_email: str
     billing_cycle: str = 'monthly'  # 'monthly' or 'yearly'
+
+class LemonSqueezyPortalRequest(BaseModel):
+    user_id: str
 
 # --- Routes ---
 
@@ -1192,7 +1259,8 @@ async def create_lemon_squeezy_checkout(request: LemonSqueezyCheckoutRequest):
             }
         }
         
-        logger.info(f"Creating Lemon Squeezy checkout for user {request.user_id}, plan {request.plan_id}")
+        logger.info(f"Creating Lemon Squeezy checkout for user {request.user_id}, plan {request.plan_id}, variant {request.variant_id}")
+        logger.info(f"Store ID: {LEMON_SQUEEZY_STORE_ID}, API Key exists: {bool(LEMON_SQUEEZY_API_KEY)}")
         
         # Make API request to Lemon Squeezy
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -1211,7 +1279,7 @@ async def create_lemon_squeezy_checkout(request: LemonSqueezyCheckoutRequest):
                 checkout_url = checkout_data.get("data", {}).get("attributes", {}).get("url")
                 
                 if checkout_url:
-                    logger.info(f"Checkout created successfully for user {request.user_id}")
+                    logger.info(f"Checkout created successfully for user {request.user_id}, URL: {checkout_url}")
                     return {"url": checkout_url, "status": "success"}
                 else:
                     logger.error(f"No checkout URL in response: {checkout_data}")
@@ -1222,6 +1290,7 @@ async def create_lemon_squeezy_checkout(request: LemonSqueezyCheckoutRequest):
             else:
                 error_body = response.text
                 logger.error(f"Lemon Squeezy API error: {response.status_code} - {error_body}")
+                logger.error(f"Request payload was: variant_id={request.variant_id}, store_id={LEMON_SQUEEZY_STORE_ID}")
                 raise HTTPException(
                     status_code=500, 
                     detail="Unable to create checkout session. Please try again later."
@@ -1237,6 +1306,132 @@ async def create_lemon_squeezy_checkout(request: LemonSqueezyCheckoutRequest):
         )
     except Exception as e:
         logger.error(f"Unexpected error creating checkout: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail="An unexpected error occurred. Please try again."
+        )
+
+
+@api_router.post("/create-portal-session")
+async def create_portal_session(
+    request: LemonSqueezyPortalRequest,
+    authorization: str = Header(None)
+):
+    """
+    Generate a Lemon Squeezy Customer Portal URL for subscription management.
+    
+    Security:
+    - Requires valid Supabase JWT token in Authorization header
+    - Verifies that the authenticated user matches the requested user_id
+    - User can only access their own billing portal
+    
+    Flow:
+    - Validates JWT token and extracts authenticated user_id
+    - Compares with requested user_id to prevent unauthorized access
+    - Fetches the customer_id from the subscriptions table
+    - Retrieves the customer portal URL from Lemon Squeezy API
+    - Returns the URL for frontend redirect
+    """
+    try:
+        # --- SECURITY: Verify JWT Token ---
+        token_payload = await verify_supabase_token(authorization)
+        authenticated_user_id = token_payload.get('sub')
+        
+        if not authenticated_user_id:
+            logger.warning("No user ID in JWT token payload")
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication token. Please log in again."
+            )
+        
+        # --- SECURITY: Ensure user can only access their own portal ---
+        if request.user_id != authenticated_user_id:
+            logger.warning(f"User {authenticated_user_id} attempted to access portal for user {request.user_id}")
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied. You can only manage your own subscription."
+            )
+        
+        # Validate required configuration
+        if not LEMON_SQUEEZY_API_KEY:
+            logger.error("LEMON_SQUEEZY_API_KEY not configured")
+            raise HTTPException(
+                status_code=500, 
+                detail="Payment service not configured. Please contact support."
+            )
+        
+        # Query subscriptions table to find lemon_squeezy_customer_id
+        subscription_response = supabase.table('subscriptions') \
+            .select('lemon_squeezy_customer_id') \
+            .eq('user_id', authenticated_user_id) \
+            .execute()
+        
+        if not subscription_response.data or len(subscription_response.data) == 0:
+            logger.warning(f"No subscription found for user {authenticated_user_id}")
+            raise HTTPException(
+                status_code=404, 
+                detail="No active subscription found. Please subscribe to a plan first."
+            )
+        
+        ls_customer_id = subscription_response.data[0].get('lemon_squeezy_customer_id')
+        
+        if not ls_customer_id:
+            logger.warning(f"No Lemon Squeezy customer ID for user {authenticated_user_id}")
+            raise HTTPException(
+                status_code=404, 
+                detail="No billing information found. Please contact support."
+            )
+        
+        logger.info(f"Fetching portal URL for customer {ls_customer_id} (user: {authenticated_user_id})")
+        
+        # Make API request to Lemon Squeezy to get customer data
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"https://api.lemonsqueezy.com/v1/customers/{ls_customer_id}",
+                headers={
+                    "Accept": "application/vnd.api+json",
+                    "Content-Type": "application/vnd.api+json",
+                    "Authorization": f"Bearer {LEMON_SQUEEZY_API_KEY}"
+                }
+            )
+            
+            if response.status_code == 200:
+                customer_data = response.json()
+                portal_url = customer_data.get("data", {}).get("attributes", {}).get("urls", {}).get("customer_portal")
+                
+                if portal_url:
+                    logger.info(f"Portal URL retrieved successfully for user {authenticated_user_id}")
+                    return {"url": portal_url, "status": "success"}
+                else:
+                    logger.error(f"No portal URL in customer response: {customer_data}")
+                    raise HTTPException(
+                        status_code=500, 
+                        detail="Unable to retrieve billing portal. Please try again."
+                    )
+            elif response.status_code == 404:
+                logger.error(f"Customer {ls_customer_id} not found in Lemon Squeezy")
+                raise HTTPException(
+                    status_code=404, 
+                    detail="Customer record not found. Please contact support."
+                )
+            else:
+                error_body = response.text
+                logger.error(f"Lemon Squeezy API error: {response.status_code} - {error_body}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Unable to access billing portal. Please try again later."
+                )
+                
+    except HTTPException:
+        raise
+    except httpx.TimeoutException:
+        logger.error("Lemon Squeezy API timeout while fetching portal URL")
+        raise HTTPException(
+            status_code=504, 
+            detail="Payment service is temporarily unavailable. Please try again."
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error fetching portal URL: {str(e)}")
         raise HTTPException(
             status_code=500, 
             detail="An unexpected error occurred. Please try again."
@@ -1375,6 +1570,9 @@ async def handle_lemon_squeezy_webhook(request: Request):
                 plan_id = 'starter'
                 logger.warning(f"Could not determine plan_id, defaulting to 'starter'")
             
+            # Check if subscription is scheduled to cancel/change at period end
+            cancel_at_period_end = attributes.get("cancelled", False) or attributes.get("ends_at") is not None
+            
             # Prepare subscription data for upsert
             subscription_data = {
                 "user_id": user_id,
@@ -1385,6 +1583,7 @@ async def handle_lemon_squeezy_webhook(request: Request):
                 "lemon_squeezy_subscription_id": ls_subscription_id,
                 "lemon_squeezy_order_id": ls_order_id,
                 "current_period_end": renews_at or ends_at,
+                "cancel_at_period_end": cancel_at_period_end,
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }
             
@@ -1394,7 +1593,7 @@ async def handle_lemon_squeezy_webhook(request: Request):
                 .execute()
             
             if result.data:
-                logger.info(f"Subscription upserted successfully for user {user_id}")
+                logger.info(f"Subscription upserted successfully for user {user_id}, plan: {plan_id}")
                 return {"status": "success", "message": f"Subscription {event_name} processed"}
             else:
                 logger.error(f"Failed to upsert subscription for user {user_id}")

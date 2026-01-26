@@ -227,6 +227,7 @@ export const UpgradeModal = ({
   }, [open]);
 
   // Direct checkout handler - redirects immediately to payment
+  // IMPORTANT: Paid users go to customer portal, Free users go to checkout
   const handleUpgradeNow = async () => {
     const selectedPlan = plans.find(p => p.id === requiredPlan);
     if (!selectedPlan) {
@@ -236,8 +237,10 @@ export const UpgradeModal = ({
     
     // Get user from supabase auth
     let user = null;
+    let supabaseClient = null;
     try {
       const { supabase } = await import('@/lib/supabase');
+      supabaseClient = supabase;
       const { data: { user: authUser } } = await supabase.auth.getUser();
       user = authUser;
     } catch (e) {
@@ -251,6 +254,43 @@ export const UpgradeModal = ({
       return;
     }
     
+    // CRITICAL: Check if user already has a paid plan - redirect to customer portal
+    const isPaidUser = currentPlanId && currentPlanId !== 'free';
+    if (isPaidUser && supabaseClient) {
+      toast.info('Redirecting to manage your subscription...');
+      setCheckoutLoading(true);
+      try {
+        const { data: sessionData } = await supabaseClient.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+        const API_BASE = process.env.REACT_APP_BACKEND_URL || 
+                         process.env.REACT_APP_API_URL || 
+                         'https://trust-flow-app.vercel.app';
+        
+        const response = await fetch(`${API_BASE}/api/create-portal-session`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ user_id: user.id }),
+        });
+        
+        const data = await response.json();
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          toast.error('Unable to open subscription portal. Please try from your dashboard.');
+        }
+      } catch (error) {
+        console.error('Portal redirect error:', error);
+        toast.error('Unable to open subscription portal. Please try from your dashboard.');
+      } finally {
+        setCheckoutLoading(false);
+      }
+      return;
+    }
+    
+    // Free user - proceed to checkout
     const variantId = selectedPlan.lemon_squeezy_variant_id_monthly;
     
     if (!variantId) {

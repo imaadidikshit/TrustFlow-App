@@ -1216,6 +1216,7 @@ const Dashboard = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [billingPortalLoading, setBillingPortalLoading] = useState(false);
   
   // Embed Modal State
   const [embedDialogOpen, setEmbedDialogOpen] = useState(false);
@@ -1296,6 +1297,41 @@ const Dashboard = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user]);
+
+  // IMPORTANT: Refresh subscription when user returns to dashboard (e.g., from customer portal)
+  // This ensures plan changes made in Lemon Squeezy portal are reflected immediately
+  // NOTE: Using debounce to prevent refresh during file picker operations
+  useEffect(() => {
+    let refreshTimeout = null;
+    let lastRefreshTime = 0;
+    const DEBOUNCE_MS = 2000; // Minimum 2 seconds between refreshes
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        const now = Date.now();
+        // Only refresh if enough time has passed since last refresh
+        if (now - lastRefreshTime > DEBOUNCE_MS) {
+          lastRefreshTime = now;
+          // Delay refresh to avoid triggering during file picker close
+          refreshTimeout = setTimeout(() => {
+            refreshSubscription?.();
+          }, 500);
+        }
+      }
+    };
+
+    // Removed focus listener - visibilitychange is sufficient and more reliable
+    // Focus events fire too frequently (e.g., during file picker operations)
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+    };
+  }, [user, refreshSubscription]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -1555,6 +1591,66 @@ const Dashboard = () => {
     }
   };
 
+  // Handle Manage Subscription - Redirect to Lemon Squeezy Customer Portal
+  const handleManageSubscription = async () => {
+    // Security check: User must be logged in
+    if (!user?.id) {
+      toast.error('Please log in to manage your subscription');
+      return;
+    }
+    
+    setBillingPortalLoading(true);
+    try {
+      // Get the current session token for secure API call
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session?.access_token) {
+        toast.error('Session expired. Please log in again.');
+        return;
+      }
+      
+      const accessToken = sessionData.session.access_token;
+      const BACKEND_URL = "https://verbose-engine-vprqrwgvr6rf66jx-8000.app.github.dev";
+      
+      const response = await fetch(`${BACKEND_URL}/api/create-portal-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ user_id: user.id }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // Handle specific security errors
+        if (response.status === 401) {
+          toast.error('Session expired. Please log in again.');
+          return;
+        }
+        if (response.status === 403) {
+          toast.error('Access denied. You can only manage your own subscription.');
+          return;
+        }
+        throw new Error(data.detail || 'Failed to open billing portal');
+      }
+      
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No portal URL received');
+      }
+    } catch (error) {
+      console.error('Billing portal error:', error);
+      toast.error('Failed to redirect to billing portal', {
+        description: error.message || 'Please try again later.'
+      });
+    } finally {
+      setBillingPortalLoading(false);
+    }
+  };
+
   // Loading state
   if (authLoading || subLoading) {
     return (
@@ -1574,6 +1670,16 @@ const Dashboard = () => {
   const isStarterPlan = currentPlanId === 'starter';
   const isFreePlan = !isProPlan && !isStarterPlan;
   const showUpgradeOption = !isProPlan; // Only show upgrade for free and starter plans
+  
+  // Handle upgrade button click - Free users go to pricing, Paid users go to portal
+  const handleUpgradeClick = () => {
+    if (isFreePlan) {
+      navigate('/pricing');
+    } else {
+      // Paid users (Starter) go to customer portal
+      handleManageSubscription();
+    }
+  };
   
   const getPlanGradient = () => {
     if (isProPlan) return 'from-amber-500 to-orange-500';
@@ -1872,7 +1978,7 @@ const Dashboard = () => {
                         variant="outline" 
                         size="sm" 
                         className="h-8 text-xs gap-1.5" 
-                        onClick={() => navigate('/pricing')}
+                        onClick={handleUpgradeClick}
                       >
                         <Zap className="w-3 h-3" /> Upgrade
                       </Button>
@@ -1947,7 +2053,7 @@ const Dashboard = () => {
                     <Button 
                       variant="outline" 
                       className="h-auto py-4 w-full flex-col gap-2 bg-white/90 dark:bg-slate-800/90" 
-                      onClick={() => navigate('/pricing')}
+                      onClick={handleUpgradeClick}
                     >
                       <Zap className="w-5 h-5 text-amber-500" />
                       <span className="text-xs">Upgrade</span>
@@ -2398,10 +2504,21 @@ const Dashboard = () => {
                   <CardContent className="space-y-4">
                     {!isFreePlan && subscription?.current_period_end && (
                       <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 space-y-3">
+                        {/* Show cancellation/change notice if applicable */}
+                        {subscription?.cancel_at_period_end && (
+                          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 mb-3">
+                            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                              ⚠️ Plan changes at period end
+                            </p>
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                              Your current plan will remain active until {new Date(subscription.current_period_end).toLocaleDateString()}. Any changes will take effect after this date.
+                            </p>
+                          </div>
+                        )}
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <CalendarDays className="w-4 h-4" />
-                            <span>Next billing</span>
+                            <span>{subscription?.cancel_at_period_end ? 'Plan active until' : 'Next billing'}</span>
                           </div>
                           <span className="font-medium">
                             {new Date(subscription.current_period_end).toLocaleDateString()}
@@ -2422,7 +2539,7 @@ const Dashboard = () => {
                     )}
 
                     <div className="flex flex-col sm:flex-row gap-2">
-                      {showUpgradeOption ? (
+                      {isFreePlan ? (
                         <Button 
                           className="flex-1 bg-gradient-to-r from-violet-600 to-indigo-600" 
                           onClick={() => navigate('/pricing')}
@@ -2434,9 +2551,14 @@ const Dashboard = () => {
                           <Button 
                             variant="outline" 
                             className="flex-1"
-                            onClick={() => toast.info('Opening billing portal...')}
+                            onClick={handleManageSubscription}
+                            disabled={billingPortalLoading}
                           >
-                            <Receipt className="w-4 h-4 mr-2" /> Manage Billing
+                            {billingPortalLoading ? (
+                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading...</>
+                            ) : (
+                              <><Receipt className="w-4 h-4 mr-2" /> Manage Subscription & Billing</>
+                            )}
                           </Button>
                           <Button 
                             variant="ghost" 
@@ -2557,10 +2679,10 @@ const Dashboard = () => {
                   {showUpgradeOption && (
                     <div className="mt-4 text-center">
                       <Button 
-                        onClick={() => navigate('/pricing')} 
+                        onClick={handleUpgradeClick} 
                         className="bg-gradient-to-r from-violet-600 to-indigo-600"
                       >
-                        View Full Comparison 
+                        {isFreePlan ? 'View Full Comparison' : 'Manage Subscription'} 
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
@@ -2569,27 +2691,7 @@ const Dashboard = () => {
               </Card>
             </motion.div>
 
-            {/* Billing History Placeholder */}
-            {!isFreePlan && (
-              <motion.div {...fadeInUp} transition={{ delay: 0.3 }}>
-                <Card className="border-0 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-violet-500" />
-                      Billing History
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <FileText className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        No invoices yet. Your first invoice will appear here after your billing cycle.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
+
           </TabsContent>
         </Tabs>
       </main>
