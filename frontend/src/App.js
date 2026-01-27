@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -231,6 +232,7 @@ function App() {
         <CustomDomainHandler />
         <Toaster />
         <SonnerToaster position="top-center" richColors closeButton />
+        <Analytics />
       </BrowserRouter>
     );
   }
@@ -245,6 +247,7 @@ function App() {
             <AppRoutes />
             <Toaster />
             <SonnerToaster position="top-center" richColors closeButton />
+            <Analytics />
           </SubscriptionProvider>
         </AuthProvider>
       </BrowserRouter>
