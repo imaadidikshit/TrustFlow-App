@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -233,6 +234,7 @@ function App() {
         <Toaster />
         <SonnerToaster position="top-center" richColors closeButton />
         <Analytics />
+        <SpeedInsights />
       </BrowserRouter>
     );
   }
@@ -248,6 +250,7 @@ function App() {
             <Toaster />
             <SonnerToaster position="top-center" richColors closeButton />
             <Analytics />
+            <SpeedInsights />
           </SubscriptionProvider>
         </AuthProvider>
       </BrowserRouter>
